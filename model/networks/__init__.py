@@ -9,7 +9,8 @@ class BaseModel(object):
     '''
     Base class for different models
     '''
-    def __init__(self):
+    def __init__(self, n_classes):
+        self.n_classes = n_classes
         self.input_shape = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.N_CHANNELS)
 
     def log(self, msg):

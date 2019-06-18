@@ -2,8 +2,11 @@
 from tensorflow.keras import Model, Input
 from tensorflow.keras.applications import ResNet101, ResNet50
 from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import RMSprop, Adam
 
 from model.networks import BaseModel
+
+from model.utils.config import cfg
 
 
 class Baseline(BaseModel):
@@ -17,12 +20,12 @@ class Baseline(BaseModel):
         x = self.cls_model(inp)
 
         # dense + sigmoid for multilabel classification
-        output =
+        output = Dense(self.n_classes, activation='sigmoid')(x)
 
         self.model = Model(inputs=inp, outputs=output)
         self.log("Outputs shape %s" % self.model.output_shape)
 
-        optimizer = build_optimizer()
+        optimizer = self.build_optimizer()
         self.model.compile(loss='binary_crossentropy', optimizer=optimizer)
 
         if cfg.VERBOSE:
