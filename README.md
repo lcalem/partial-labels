@@ -1,6 +1,11 @@
 # partial-labels
 
 
+## Presentation
+
+This is the working repository for a research project about partial labels. Authors are [Laura Calem](https://lcalem.github.io/) and [Olivier Petit](https://www.olivier-petit.fr/)
+
+
 ## Setup
 
 ### 1. Download repo
