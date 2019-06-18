@@ -1,0 +1,11 @@
+ARCHI:
+    NAME: baseline
+    WELDON:
+        WELDON_K_PLUS: 0.1
+        WELDON_K_MINUS: 0.1
+DATASET:
+    NAME: pascalvoc
+    PATH: /share/DEEPLEARNING/datasets/pascalvoc/
+BATCH_SIZE: 16
+TRAINING:
+    N_EPOCHS: 20

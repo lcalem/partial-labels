@@ -1,6 +1,0 @@
-architecture: baseline
-batch_size: 16
-n_epochs: 20
-weldon:
-    weldon_k_plus: 0.1
-    weldon_k_monus: 0.1

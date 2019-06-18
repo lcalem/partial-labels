@@ -32,3 +32,5 @@ export PYTHONPATH="${PYTHONPATH}:/<repo_root>/partial-labels"
 - `python3 pp_multilabel.py <dataset_root> trainval`
 - `python3 pp_multilabel.py <dataset_root> test`
 
+
+Coming soon: MS COCO
