@@ -5,4 +5,5 @@ from model.networks import BaseModel
 
 class Baseline(BaseModel):
 
-    pass
+    def build(self):
+        pass

@@ -13,7 +13,7 @@ from utils import load_ids
 
 def preprocess(dataset_folder, dataset_type):
 
-    output_file = os.path.join(dataset_folder, 'VOCdevkit/VOC2007/Annotations', 'annotations_multilabel.csv')
+    output_file = os.path.join(dataset_folder, 'VOCdevkit/VOC2007/Annotations', 'annotations_multilabel_%s.csv' % dataset_type)
     classif_annot_folder = os.path.join(dataset_folder, 'VOCdevkit/VOC2007/ImageSets/Main')
 
     class_ids = load_ids('class_id.csv')
@@ -47,6 +47,6 @@ def preprocess(dataset_folder, dataset_type):
 if __name__ == '__main__':
     dataset_folder = sys.argv[1]
     dataset_type = sys.argv[2]
-    assert dataset_type in ['train', 'val', 'trainval'], 'unrecognized dataset type %s' % dataset_type
+    assert dataset_type in ['train', 'val', 'trainval', 'test'], 'unrecognized dataset type %s' % dataset_type
 
     preprocess(dataset_folder, dataset_type)
