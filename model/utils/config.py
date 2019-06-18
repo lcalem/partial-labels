@@ -38,5 +38,6 @@ cfg.CALLBACK.TENSORBOARD.SAVE_GRAPH = True
 # define training params
 cfg.TRAINING = edict()
 cfg.TRAINING.N_EPOCH = 15
+cfg.TRAINING.N_WORKERS = 2
 cfg.TRAINING.OPTIMIZER = "adam"
 cfg.TRAINING.LEARNING_RATE = 0.0001
