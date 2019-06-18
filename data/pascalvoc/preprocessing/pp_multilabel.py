@@ -16,7 +16,7 @@ def preprocess(dataset_folder, dataset_type):
     output_file = os.path.join(dataset_folder, 'VOCdevkit/VOC2007/Annotations', 'annotations_multilabel_%s.csv' % dataset_type)
     classif_annot_folder = os.path.join(dataset_folder, 'VOCdevkit/VOC2007/ImageSets/Main')
 
-    class_ids = load_ids('class_id.csv')
+    class_ids = load_ids()
     data = defaultdict(lambda: [None] * len(class_ids))
 
     # read
