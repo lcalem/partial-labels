@@ -8,7 +8,6 @@ from pprint import pprint
 
 from config import config_utils
 
-from data.loader import BatchLoader
 from data.pascalvoc import PascalVOC
 
 from model.networks.baseline import Baseline
@@ -77,33 +76,27 @@ class Launcher():
 
     def launch(self):
         '''
-        1. load dataset
-        2. batch_loader for train data (TODO same for test data)
+        1. load dataset (TODO same for test data)
         3. callbacks (TODO)
         4. load / build model
         5. train
         '''
 
-        dataset = self.load_dataset()
-        data_train = BatchLoader(
-            dataset,
-            ['multilabel'],
-            'train',
-            batch_size=cfg.BATCH_SIZE,
-            shuffle=cfg.DATASET.SHUFFLE)
+        dataset_train = self.load_dataset(mode='train', y_keys=['multilabel'])
 
         # callbacks (no callbacks for now)
 
         # model
-        self.build_model(dataset.n_classes)
-        self.model.train(data_train, steps_per_epoch=len(data_train))
+        self.build_model(dataset_train.n_classes)
+        self.model.train(dataset_train, steps_per_epoch=len(dataset_train))
 
     def load_dataset(self):
         '''
         we keep an ugly switch for now
+        TODO: better dataset mode management
         '''
         if cfg.DATASET.NAME == 'pascalvoc':
-            dataset = PascalVOC(cfg.DATASET.PATH)
+            dataset = PascalVOC(cfg.DATASET.PATH, 'train')
         else:
             raise Exception('Unknown dataset %s' % cfg.DATASET.NAME)
 
