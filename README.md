@@ -3,11 +3,22 @@
 
 ## Setup
 
-### Datasets
+### 1. Download repo
+
+1. Go in some folder <repo_root>
+2. `git clone git@github.com:lcalem/partial-labels.git .`
+3. Put `<repo_root>/partial-labels` in your `PYTHONPATH` by putting this line in your `/.bashrc` or whatever file you're using:
+
+```
+export PYTHONPATH="${PYTHONPATH}:/<repo_root>/partial-labels"
+```
+
+
+### 2. Datasets
 
 1. Download
-Make a dataset folder and `cd` in it (it will be called <dataset_root>)
-Download Pascal-VOC 2007 dataset
+<br/>Make a dataset folder and `cd` in it (it will be called <dataset_root>)
+<br/>Download Pascal-VOC 2007 dataset
 - trainval `wget http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtrainval_06-Nov-2007.tar`
 - test `wget wget http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtest_06-Nov-2007.tar`
 
