@@ -11,6 +11,7 @@ from config import config_utils
 from data.loader import BatchLoader
 from data.pascalvoc import PascalVOC
 
+from model.networks.baseline import Baseline
 from model.utils.config import cfg
 
 
@@ -94,12 +95,8 @@ class Launcher():
         # callbacks (no callbacks for now)
 
         # model
-        self.build_model()
-        self.model.train(data_train,
-                         steps_per_epoch=len(data_train),
-                         model_folder=cfg.EXP_FOLDER,
-                         n_epochs=cfg.TRAINING.N_EPOCHS,
-                         n_workers=cfg.TRAINING.N_WORKERS)
+        self.build_model(dataset.get_n_classes())
+        self.model.train(data_train, steps_per_epoch=len(data_train))
 
     def load_dataset(self):
         '''
@@ -112,6 +109,15 @@ class Launcher():
 
         return dataset
 
+    def build_model(self, n_classes):
+        '''
+        TODO: we keep an ugly switch for now, do a more elegant importlib base loader after
+        '''
+        if cfg.ARCHI.NAME == 'baseline':
+            self.model = Baseline(n_classes)
+
+        self.model.build()
+
 
 # python3 launch.py -o baseline -g 1
 if __name__ == '__main__':
@@ -123,14 +129,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     options = parse_options_file(args.options)
 
-    print("\nBEFORE CONFIG")
-    pprint(cfg)
-    print("\n")
     config_utils.update_config(options)
-
-    print("\nAFTER CONFIG")
-    pprint(cfg)
-    print("\n")
 
     exp_folder = exp_init(args.exp_name)
     options['exp_folder'] = exp_folder

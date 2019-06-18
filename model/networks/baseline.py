@@ -1,4 +1,7 @@
 
+from tensorflow.keras import Model, Input
+from tensorflow.keras.applications import ResNet101, ResNet50
+from tensorflow.keras.layers import Dense
 
 from model.networks import BaseModel
 
@@ -6,4 +9,36 @@ from model.networks import BaseModel
 class Baseline(BaseModel):
 
     def build(self):
-        pass
+        self.build_classifier()
+
+        inp = Input(shape=self.input_shape, name='image_input')
+
+        # classifier
+        x = self.cls_model(inp)
+
+        # dense + sigmoid for multilabel classification
+        output =
+
+        self.model = Model(inputs=inp, outputs=output)
+        self.log("Outputs shape %s" % self.model.output_shape)
+
+        optimizer = build_optimizer()
+        self.model.compile(loss='binary_crossentropy', optimizer=optimizer)
+
+        if cfg.VERBOSE:
+            self.log("Final model summary")
+            self.model.summary()
+
+    def build_classifier(self):
+        cls_model = ResNet101(include_top=False, weights='imagenet', input_shape=self.input_shape)
+        self.cls_model = Model(inputs=cls_model.inputs, outputs=cls_model.output, name='cls_model')
+
+    def build_optimizer(self):
+        '''
+        TODO: something better than an ugly switch <3
+        '''
+        if cfg.TRAINING.OPTIMIZER == 'rmsprop':
+            return RMSprop(lr=cfg.TRAINING.START_LR)
+        elif cfg.TRAINING.OPTIMIZER == 'adam':
+            return Adam(lr=cfg.TRAINING.START_LR)
+        raise Exception('Unknown optimizer %s' % cfg.TRAINING.OPTIMIZER)
