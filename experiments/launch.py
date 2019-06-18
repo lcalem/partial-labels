@@ -7,7 +7,10 @@ import yaml
 from pprint import pprint
 
 from config import config_utils
+
+from data.loader import BatchLoader
 from data.pascalvoc import PascalVOC
+
 from model.utils.config import cfg
 
 
@@ -25,7 +28,7 @@ def parse_options_file(filepath):
 
     # not an absolute path -> try to find it in the configs/ folder
     if not filepath.startswith('/'):
-        filepath = '../configs/%s' % filepath
+        filepath = '../config/%s' % filepath
         if not os.path.isfile(filepath):
             raise Exception('config file %s not found' % filepath)
 
@@ -40,7 +43,7 @@ def parse_options_file(filepath):
     return config
 
 
-def exp_init(params, exps_folder=None):
+def exp_init(exps_folder=None, exp_name=None):
     '''
     common actions for setuping an experiment:
     - create experiment folder
@@ -51,14 +54,15 @@ def exp_init(params, exps_folder=None):
         exps_folder = os.path.join(os.environ['HOME'], 'partial_experiments')
 
     # model folder
-    model_folder = '%s/exp_%s_%s_%s' % (exps_folder, datetime.datetime.now().strftime("%Y%m%d_%H%M"), params['architecture'], params.get('name', ''))
+    name_suffix = ('_%s' % exp_name) if exp_name else ''
+    model_folder = '%s/exp_%s_%s%s' % (exps_folder, datetime.datetime.now().strftime("%Y%m%d_%H%M"), cfg.ARCHI.NAME, name_suffix)
     os.makedirs(model_folder)
-    print("Conducting experiment for %s epochs in folder %s" % (params['n_epochs'], model_folder))
+    print("Conducting experiment for %s epochs in folder %s" % (cfg.TRAINING.N_EPOCHS, model_folder))
 
     # config
     config_path = os.path.join(model_folder, 'config.yaml')
     with open(config_path, 'w+') as f_conf:
-        yaml.dump(params, f_conf, default_flow_style=False)
+        yaml.dump(cfg, f_conf, default_flow_style=False)
 
     # model
     src_folder = os.path.dirname(os.path.realpath(__file__)) + '/..'
@@ -70,18 +74,32 @@ def exp_init(params, exps_folder=None):
 
 class Launcher():
 
-    def __init__(self, options):
-        config_utils.update_config(options)
-
     def launch(self):
+        '''
+        1. load dataset
+        2. batch_loader for train data (TODO same for test data)
+        3. callbacks (TODO)
+        4. load / build model
+        5. train
+        '''
 
         dataset = self.load_dataset()
         data_train = BatchLoader(
             dataset,
             ['multilabel'],
-            TRAIN_MODE,
+            'train',
             batch_size=cfg.BATCH_SIZE,
             shuffle=cfg.DATASET.SHUFFLE)
+
+        # callbacks (no callbacks for now)
+
+        # model
+        self.build_model()
+        self.model.train(data_train,
+                         steps_per_epoch=len(data_train),
+                         model_folder=cfg.EXP_FOLDER,
+                         n_epochs=cfg.TRAINING.N_EPOCHS,
+                         n_workers=cfg.TRAINING.N_WORKERS)
 
     def load_dataset(self):
         '''
@@ -100,16 +118,26 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
     parser.add_argument('--gpu', '-g', required=True, help='# of the gpu device')
+    parser.add_argument('--exp_name', '-n', help='optional experiment name')
 
     args = parser.parse_args()
     options = parse_options_file(args.options)
 
-    exp_folder = exp_init(options)
+    print("\nBEFORE CONFIG")
+    pprint(cfg)
+    print("\n")
+    config_utils.update_config(options)
+
+    print("\nAFTER CONFIG")
+    pprint(cfg)
+    print("\n")
+
+    exp_folder = exp_init(args.exp_name)
     options['exp_folder'] = exp_folder
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
-    launcher = Launcher(options)
+    launcher = Launcher()
     launcher.launch()
 
 

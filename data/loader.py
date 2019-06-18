@@ -7,5 +7,8 @@ class BatchLoader(Sequence):
 
     def __init__(self,
                  dataset,
-                 y_keys):
+                 y_keys,
+                 mode,
+                 batch_size,
+                 shuffle):
         pass
