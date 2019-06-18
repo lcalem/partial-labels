@@ -95,7 +95,7 @@ class Launcher():
         # callbacks (no callbacks for now)
 
         # model
-        self.build_model(dataset.get_n_classes())
+        self.build_model(dataset.n_classes)
         self.model.train(data_train, steps_per_epoch=len(data_train))
 
     def load_dataset(self):
