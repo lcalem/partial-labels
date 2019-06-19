@@ -12,6 +12,7 @@ class BaseModel(object):
     def __init__(self, n_classes):
         self.n_classes = n_classes
         self.input_shape = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.N_CHANNELS)
+        self.verbose = cfg.VERBOSE
 
     def log(self, msg):
         if self.verbose:

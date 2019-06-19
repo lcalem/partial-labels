@@ -28,7 +28,7 @@ class Baseline(BaseModel):
         optimizer = self.build_optimizer()
         self.model.compile(loss='binary_crossentropy', optimizer=optimizer)
 
-        if cfg.VERBOSE:
+        if self.verbose:
             self.log("Final model summary")
             self.model.summary()
 
