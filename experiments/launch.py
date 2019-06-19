@@ -88,7 +88,7 @@ class Launcher():
 
         # model
         self.build_model(dataset_train.n_classes)
-        self.model.train(dataset_train, steps_per_epoch=len(dataset_train))
+        self.model.train(dataset_train, steps_per_epoch=len(dataset_train), cb_list=[])
 
     def load_dataset(self):
         '''
@@ -125,7 +125,6 @@ if __name__ == '__main__':
     config_utils.update_config(options)
 
     exp_folder = exp_init(args.exp_name)
-    options['exp_folder'] = exp_folder
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 

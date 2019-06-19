@@ -39,6 +39,7 @@ class BaseModel(object):
                                  use_multiprocessing=cfg.MULTIP.USE_MULTIPROCESS,
                                  max_queue_size=cfg.MULTIP.MAX_QUEUE_SIZE,
                                  workers=cfg.MULTIP.N_WORKERS,
+                                 shuffle=cfg.DATASET.SHUFFLE,
                                  initial_epoch=0)
 
     def predict(self, data):
