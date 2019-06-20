@@ -4,6 +4,7 @@ from tensorflow.keras.applications import ResNet101, ResNet50
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import RMSprop, Adam
 
+from model.metrics import MAP
 from model.networks import BaseModel
 
 from model.utils.config import cfg
@@ -26,7 +27,7 @@ class Baseline(BaseModel):
         self.log("Outputs shape %s" % self.model.output_shape)
 
         optimizer = self.build_optimizer()
-        self.model.compile(loss='binary_crossentropy', optimizer=optimizer)
+        self.model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=[MAP()])
 
         if self.verbose:
             self.log("Final model summary")
