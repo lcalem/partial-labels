@@ -28,19 +28,25 @@ class BaseModel(object):
     def build(self):
         raise NotImplementedError
 
-    def train(self, data_tr, steps_per_epoch, cb_list):
+    def train(self, data_tr, steps_per_epoch, cb_list, dataset_val=None):
 
         print("Training with %s callbacks" % len(cb_list))
 
-        self.model.fit_generator(data_tr,
-                                 steps_per_epoch=steps_per_epoch,
-                                 epochs=cfg.TRAINING.N_EPOCHS,
-                                 callbacks=cb_list,
-                                 use_multiprocessing=cfg.MULTIP.USE_MULTIPROCESS,
-                                 max_queue_size=cfg.MULTIP.MAX_QUEUE_SIZE,
-                                 workers=cfg.MULTIP.N_WORKERS,
-                                 shuffle=cfg.DATASET.SHUFFLE,
-                                 initial_epoch=0)
+        kwargs = {
+            'steps_per_epoch': steps_per_epoch,
+            'epochs': cfg.TRAINING.N_EPOCHS,
+            'callbacks': cb_list,
+            'use_multiprocessing': cfg.MULTIP.USE_MULTIPROCESS,
+            'max_queue_size': cfg.MULTIP.MAX_QUEUE_SIZE,
+            'workers': cfg.MULTIP.N_WORKERS,
+            'shuffle': cfg.DATASET.SHUFFLE,
+            'initial_epoch': 0
+        }
+
+        if dataset_val:
+            kwargs['validation_data'] = dataset_val
+
+        self.model.fit_generator(data_tr, **kwargs)
 
     def predict(self, data):
         return self.model.predict(data)

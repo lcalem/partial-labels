@@ -83,12 +83,13 @@ class Launcher():
         '''
 
         dataset_train = self.load_dataset(mode='train', y_keys=['multilabel'])
+        dataset_val = self.load_dataset(mode='val', y_keys=['multilabel'])
 
         # callbacks (no callbacks for now)
 
         # model
         self.build_model(dataset_train.n_classes)
-        self.model.train(dataset_train, steps_per_epoch=len(dataset_train), cb_list=[])
+        self.model.train(dataset_train, steps_per_epoch=len(dataset_train), cb_list=[], dataset_val=dataset_val)
 
     def load_dataset(self):
         '''
@@ -112,7 +113,7 @@ class Launcher():
         self.model.build()
 
 
-# python3 launch.py -o baseline -g 1
+# python3 launch.py -o baseline -g 3
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
