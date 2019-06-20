@@ -10,7 +10,7 @@ from tensorflow.keras.callbacks import TensorBoard
 
 from config import config_utils
 
-from data.pascalvoc import PascalVOC
+from data.pascalvoc.pascalvoc import PascalVOC
 
 from model.callbacks.metric_callbacks import MAPCallback
 from model.networks.baseline import Baseline
@@ -98,13 +98,13 @@ class Launcher():
         self.build_model(dataset_train.n_classes)
         self.model.train(dataset_train, steps_per_epoch=len(dataset_train), cb_list=cb_list, dataset_val=dataset_val)
 
-    def load_dataset(self):
+    def load_dataset(self, mode, y_keys):
         '''
         we keep an ugly switch for now
         TODO: better dataset mode management
         '''
         if cfg.DATASET.NAME == 'pascalvoc':
-            dataset = PascalVOC(cfg.DATASET.PATH, 'train')
+            dataset = PascalVOC(cfg.DATASET.PATH, mode, x_keys=['image'], y_keys=y_keys)
         else:
             raise Exception('Unknown dataset %s' % cfg.DATASET.NAME)
 
@@ -132,7 +132,8 @@ class Launcher():
         tensorboard = TensorBoard(log_dir=os.path.join(logs_folder, 'tensorboard'))
         cb_list.append(tensorboard)
 
-        map_cb = MAPCallback(dataset_val, self.exp_folder)
+        x_val, y_val = dataset_val[0]
+        map_cb = MAPCallback(x_val, y_val, self.exp_folder)
         cb_list.append(map_cb)
 
         return cb_list
