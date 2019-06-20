@@ -6,10 +6,13 @@ import yaml
 
 from pprint import pprint
 
+from tensorflow.keras.callbacks import TensorBoard
+
 from config import config_utils
 
 from data.pascalvoc import PascalVOC
 
+from model.callbacks.metric_callbacks import MAPCallback
 from model.networks.baseline import Baseline
 from model.utils.config import cfg
 
@@ -74,10 +77,13 @@ def exp_init(exps_folder=None, exp_name=None):
 
 class Launcher():
 
+    def __init__(self, exp_folder):
+        self.exp_folder = exp_folder   # still not sure this should go in config or not
+
     def launch(self):
         '''
-        1. load dataset (TODO same for test data)
-        3. callbacks (TODO)
+        1. load dataset
+        3. callbacks
         4. load / build model
         5. train
         '''
@@ -85,11 +91,12 @@ class Launcher():
         dataset_train = self.load_dataset(mode='train', y_keys=['multilabel'])
         dataset_val = self.load_dataset(mode='val', y_keys=['multilabel'])
 
-        # callbacks (no callbacks for now)
+        # callbacks
+        cb_list = self.build_callbacks(dataset_val)
 
         # model
         self.build_model(dataset_train.n_classes)
-        self.model.train(dataset_train, steps_per_epoch=len(dataset_train), cb_list=[], dataset_val=dataset_val)
+        self.model.train(dataset_train, steps_per_epoch=len(dataset_train), cb_list=cb_list, dataset_val=dataset_val)
 
     def load_dataset(self):
         '''
@@ -108,9 +115,27 @@ class Launcher():
         TODO: we keep an ugly switch for now, do a more elegant importlib base loader after
         '''
         if cfg.ARCHI.NAME == 'baseline':
-            self.model = Baseline(n_classes)
+            self.model = Baseline(self.exp_folder, n_classes)
 
         self.model.build()
+
+    def build_callbacks(self, dataset_val):
+        '''
+        TensorBoard
+        SaveModel
+        MAPCallback
+        '''
+        cb_list = list()
+
+        logs_folder = os.environ['HOME'] + '/partial_experiments/tensorboard/' + self.exp_folder.split('/')[-1]
+        print('Tensorboard log folder %s' % logs_folder)
+        tensorboard = TensorBoard(log_dir=os.path.join(logs_folder, 'tensorboard'))
+        cb_list.append(tensorboard)
+
+        map_cb = MAPCallback(dataset_val, self.exp_folder)
+        cb_list.append(map_cb)
+
+        return cb_list
 
 
 # python3 launch.py -o baseline -g 3
@@ -129,7 +154,7 @@ if __name__ == '__main__':
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
-    launcher = Launcher()
+    launcher = Launcher(exp_folder)
     launcher.launch()
 
 

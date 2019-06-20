@@ -9,7 +9,9 @@ class BaseModel(object):
     '''
     Base class for different models
     '''
-    def __init__(self, n_classes):
+    def __init__(self, exp_folder, n_classes):
+        self.exp_folder = exp_folder
+
         self.n_classes = n_classes
         self.input_shape = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.N_CHANNELS)
         self.verbose = cfg.VERBOSE

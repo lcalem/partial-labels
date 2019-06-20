@@ -5,7 +5,7 @@ from keras.callbacks import Callback
 from model import metrics
 
 
-class MAP(Callback):
+class MAPCallback(Callback):
     def __init__(self, validation_data, exp_folder):
         super(Callback, self).__init__()
 
