@@ -6,11 +6,12 @@ from model import metrics
 
 
 class MAPCallback(Callback):
-    def __init__(self, validation_data, exp_folder):
+    def __init__(self, x_val, y_val, exp_folder):
         super(Callback, self).__init__()
 
         self.exp_folder = exp_folder
-        self.x_val, self.y_val = validation_data
+        self.x_val = x_val
+        self.y_val = y_val
         self.map = metrics.MAP()
 
     def on_epoch_end(self, epoch, logs={}):

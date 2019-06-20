@@ -1,4 +1,5 @@
 import csv
+import os
 
 
 def load_ids():
@@ -18,8 +19,10 @@ def load_ids():
     # most of the fields in class_id.csv are integers
     def int_or_not(key, val): return (val if key == 'name' else int(val))
 
+    here = os.path.abspath(os.path.dirname(__file__))
+
     name2info = dict()
-    with open('class_id.csv', 'r') as f_in:
+    with open(os.path.join(here, 'class_id.csv'), 'r') as f_in:
         reader = csv.DictReader(f_in, delimiter=';')
         for row in reader:
             name2info[row['name']] = {k: int_or_not(k, v) for k, v in row.items()}

@@ -1,6 +1,18 @@
 
+# because tensorflow.keras.applications doesn't have ResNet101 for some reason we have this workaround
+# ONLY works with keras_applications=1.0.7 since 1.0.6 doesn't have ResNet101 an 1.0.8 removed the set_keras_submodules function
+import keras
+import keras_applications
+keras_applications.set_keras_submodules(
+    backend=keras.backend,
+    layers=keras.layers,
+    models=keras.models,
+    utils=keras.utils
+)
+
 from tensorflow.keras import Model, Input
-from tensorflow.keras.applications import ResNet101, ResNet50
+# from tensorflow.keras.applications import ResNet101, ResNet50
+
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import RMSprop, Adam
 
@@ -34,7 +46,7 @@ class Baseline(BaseModel):
             self.model.summary()
 
     def build_classifier(self):
-        cls_model = ResNet101(include_top=False, weights='imagenet', input_shape=self.input_shape)
+        cls_model = keras_applications.resnet.ResNet101(include_top=False, weights='imagenet', input_shape=self.input_shape)
         self.cls_model = Model(inputs=cls_model.inputs, outputs=cls_model.output, name='cls_model')
 
     def build_optimizer(self):

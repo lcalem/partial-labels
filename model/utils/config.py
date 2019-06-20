@@ -42,6 +42,7 @@ cfg.TRAINING.OPTIMIZER = "adam"
 cfg.TRAINING.START_LR = 0.0001
 
 # multiprocessing
+cfg.MULTIP = edict()
 cfg.MULTIP.N_WORKERS = 2
 cfg.MULTIP.MAX_QUEUE_SIZE = 10
 cfg.MULTIP.USE_MULTIPROCESS = False

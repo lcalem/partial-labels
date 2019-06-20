@@ -4,7 +4,7 @@ http://host.robots.ox.ac.uk/pascal/VOC/voc2007/index.html#devkit
 import math
 import os
 
-from collections import defaultict
+from collections import defaultdict
 
 import numpy as np
 from PIL import Image
@@ -43,8 +43,9 @@ class PascalVOC(Dataset):
 
         self.class_info = utils.load_ids()
         self.n_classes = len(self.class_info)
+        self.img_size = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.N_CHANNELS)
 
-        self.samples = defaultict(dict)
+        self.samples = defaultdict(dict)
         self.load_annotations(os.path.join(dataset_path, 'VOCdevkit/VOC2007/Annotations/annotations_multilabel_%s.csv' % mode))
 
         Dataset.__init__(self)
@@ -63,7 +64,7 @@ class PascalVOC(Dataset):
         000131,-1,-1,-1,-1,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1,-1,-1,-1
         '''
 
-        samples = defaultict(dict)
+        samples = defaultdict(dict)
 
         # multilabel annotations
         with open(annotations_path, 'r') as f_in:
@@ -111,16 +112,24 @@ class PascalVOC(Dataset):
                 sample_idx -= self.n_samples
 
             data = self.get_data_dict(sample_idx)
-            for key in self.allkeys:
+            for key in self.all_keys:
                 data_dict[key][i, :] = data[key]
 
         return data_dict
+
+    def get_key_shape(self, key):
+        if key == 'image':
+            return self.img_size
+        elif key == 'multilabel':
+            return (self.n_classes, )
+        else:
+            raise Exception('Unknown key %s' % key)
 
     def get_data_dict(self, sample_idx):
         output = {}
         sample_id = self.sample_ids[sample_idx]
 
-        output['frame'] = self.get_image(sample_id)
+        output['image'] = self.get_image(sample_id)
         output['multilabel'] = self.samples[sample_id]['multilabel']
 
         return output
@@ -131,4 +140,5 @@ class PascalVOC(Dataset):
         TODO: we want it to fail if an image is not found, but we should make it fail gracefully
         '''
         image_path = os.path.join(self.dataset_path, 'VOCdevkit/VOC2007/JPEGImages/%s.jpg' % img_id)
-        return Image.open(image_path)
+        img = Image.open(image_path)
+        img = img.resize((self.img_size[0], self.img_size[1]), Image.BILINEAR)

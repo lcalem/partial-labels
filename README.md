@@ -36,8 +36,8 @@ export PYTHONPATH="${PYTHONPATH}:/<repo_root>/partial-labels"
 2.1.3. Preprocess using `data/pascalvoc/preprocessing/pp_multilabel.py` to create a single annotation csv
 (do it once for trainval and a second time for test, separately)
 
-- `python3 pp_multilabel.py <dataset_root> trainval`
-- `python3 pp_multilabel.py <dataset_root> test`
+- `python3 pp_multilabel.py <dataset_root> train`
+- `python3 pp_multilabel.py <dataset_root> val`
 
 
 #### 2.2. MS COCO
