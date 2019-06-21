@@ -6,6 +6,6 @@ archi:
 dataset:
     name: pascalvoc
     path: /share/DEEPLEARNING/datasets/pascalvoc/
-batch_size: 16
+batch_size: 8
 training:
     n_epochs: 20
