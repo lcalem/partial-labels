@@ -13,6 +13,7 @@ from config import config_utils
 from data.pascalvoc.pascalvoc import PascalVOC
 
 from model.callbacks.metric_callbacks import MAPCallback
+from model.callbacks.save_callback import SaveModel
 from model.networks.baseline import Baseline
 from model.utils.config import cfg
 
@@ -127,14 +128,19 @@ class Launcher():
         '''
         cb_list = list()
 
+        # tensorboard
         logs_folder = os.environ['HOME'] + '/partial_experiments/tensorboard/' + self.exp_folder.split('/')[-1]
         print('Tensorboard log folder %s' % logs_folder)
         tensorboard = TensorBoard(log_dir=os.path.join(logs_folder, 'tensorboard'))
         cb_list.append(tensorboard)
 
+        # MAP
         x_val, y_val = dataset_val[0]
         map_cb = MAPCallback(x_val, y_val, self.exp_folder)
         cb_list.append(map_cb)
+
+        # Save Model
+        cb_list.append(SaveModel(self.exp_folder))
 
         return cb_list
 
