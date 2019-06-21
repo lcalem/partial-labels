@@ -21,7 +21,7 @@ class MAPCallback(Callback):
         where K is the number of classes
         '''
 
-        y_pred = self.model.predict_proba(self.x_val)
+        y_pred = self.model.predict(self.x_val)
         ap_scores = self.map.compute_separated(self.y_val, y_pred)
         print('ap scores type %s' % type(ap_scores))
         map_score = sum(ap_scores) / len(ap_scores)

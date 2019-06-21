@@ -13,6 +13,11 @@ def printc(color, msg):
     sys.stdout.flush()
 
 
+def printcn(color, vmsg):
+    print (color + vmsg + ENDC)
+    sys.stdout.flush()
+
+
 def warning(vmsg):
     sys.stdout.write(WARNING + msg + ENDC + '\n')
     sys.stdout.flush()
