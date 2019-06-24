@@ -25,10 +25,13 @@ class PascalVOC(Dataset):
                  dataset_path,
                  mode,
                  x_keys,
-                 y_keys):
+                 y_keys,
+                 p=None):
         '''
         Only multilabel for now
-        dataset_path is the folder where VOCdevkit/VOC2007/ is contained
+        - dataset_path: folder where VOCdevkit/VOC2007/ is contained
+        - mode: train / val / trainval / test -> file to be loaded
+        - p: known labels proportion -> will be used to open the correct partial dataset file (only for training)
 
         Note: shuffle is managed in the fit_generator, not at all here
         '''
@@ -48,7 +51,8 @@ class PascalVOC(Dataset):
         self.img_size = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.N_CHANNELS)
 
         self.samples = defaultdict(dict)
-        self.load_annotations(os.path.join(dataset_path, 'VOCdevkit/VOC2007/Annotations/annotations_multilabel_%s.csv' % mode))
+        annotations_file = self.get_annot_file(p)
+        self.load_annotations(annotations_file)
 
         Dataset.__init__(self)
 
@@ -57,6 +61,15 @@ class PascalVOC(Dataset):
         Should give off the number of batches
         '''
         return math.floor(self.n_samples / self.batch_size)
+
+    def get_annot_file(self, p):
+        if p is not None:
+            assert self.mode.startswith('train'), 'partial labels datasets only available for training'
+            name = '%s_partial_%s_%s' % (self.mode, p, cfg.RANDOM_SEED)
+        else:
+            name = self.mode
+
+        return os.path.join(self.dataset_path, 'VOCdevkit/VOC2007/Annotations/annotations_multilabel_%s.csv' % name)
 
     def load_annotations(self, annotations_path):
         '''
