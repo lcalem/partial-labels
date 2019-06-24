@@ -14,6 +14,8 @@ from data.pascalvoc.preprocessing import utils
 
 from model.utils.config import cfg
 
+NB_CLASSES = 20
+
 
 class PascalVOC(Dataset):
 
