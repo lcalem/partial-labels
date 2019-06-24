@@ -110,8 +110,8 @@ class Launcher():
         5. train
         '''
 
-        dataset_train = self.load_dataset(mode='train', y_keys=['multilabel'], percentage=p)
-        dataset_val = self.load_dataset(mode='val', y_keys=['multilabel'])
+        dataset_train = self.load_dataset(mode='train', y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE, percentage=p)
+        dataset_val = self.load_dataset(mode='val', y_keys=['multilabel'], batch_size=2510)  # TODO hard coded size of val omg...
 
         # callbacks
         cb_list = self.build_callbacks(dataset_val, p)
@@ -120,13 +120,13 @@ class Launcher():
         self.build_model(dataset_train.n_classes)
         self.model.train(dataset_train, steps_per_epoch=len(dataset_train), cb_list=cb_list, dataset_val=dataset_val)
 
-    def load_dataset(self, mode, y_keys, percentage=None):
+    def load_dataset(self, mode, y_keys, batch_size, percentage=None):
         '''
         we keep an ugly switch for now
         TODO: better dataset mode management
         '''
         if cfg.DATASET.NAME == 'pascalvoc':
-            dataset = PascalVOC(cfg.DATASET.PATH, mode, x_keys=['image'], y_keys=y_keys, p=percentage)
+            dataset = PascalVOC(cfg.DATASET.PATH, batch_size, mode, x_keys=['image'], y_keys=y_keys, p=percentage)
         else:
             raise Exception('Unknown dataset %s' % cfg.DATASET.NAME)
 

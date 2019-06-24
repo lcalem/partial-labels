@@ -53,9 +53,9 @@ class Baseline(BaseModel):
         cls_model = keras_applications.resnet.ResNet101(include_top=False, weights='imagenet', input_shape=self.input_shape)
         self.cls_model = Model(inputs=cls_model.inputs, outputs=cls_model.output, name='cls_model')
 
-        if self.verbose:
-            self.log('Classifier model')
-            self.cls_model.summary()
+        # if self.verbose:
+        #     self.log('Classifier model')
+        #     self.cls_model.summary()
 
     def build_optimizer(self):
         '''
