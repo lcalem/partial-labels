@@ -135,9 +135,9 @@ class Launcher():
         cb_list.append(tensorboard)
 
         # MAP
-        x_val, y_val = dataset_val[0]
-        map_cb = MAPCallback(x_val, y_val, self.exp_folder)
-        cb_list.append(map_cb)
+        # x_val, y_val = dataset_val[0]
+        # map_cb = MAPCallback(x_val, y_val, self.exp_folder)
+        # cb_list.append(map_cb)
 
         # Save Model
         cb_list.append(SaveModel(self.exp_folder))
