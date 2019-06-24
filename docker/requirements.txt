@@ -10,6 +10,8 @@ pyzmq==14.3.1
 tornado==4.5.3
 ipython==6.5.0
 
+keras_applications==1.0.7
+
 Pillow==5.4.1
 matplotlib==2.2.3
 

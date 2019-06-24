@@ -7,6 +7,8 @@ import os
 from collections import defaultdict
 
 import numpy as np
+import tensorflow as tf
+
 from PIL import Image
 
 from data import Dataset
@@ -23,6 +25,7 @@ class PascalVOC(Dataset):
 
     def __init__(self,
                  dataset_path,
+                 batch_size,
                  mode,
                  x_keys,
                  y_keys,
@@ -32,6 +35,7 @@ class PascalVOC(Dataset):
         - dataset_path: folder where VOCdevkit/VOC2007/ is contained
         - mode: train / val / trainval / test -> file to be loaded
         - p: known labels proportion -> will be used to open the correct partial dataset file (only for training)
+
 
         Note: shuffle is managed in the fit_generator, not at all here
         '''
@@ -44,7 +48,7 @@ class PascalVOC(Dataset):
         self.all_keys = set(x_keys + y_keys)
         assert all([k in self.supported_keys for k in self.all_keys]), 'Unexpected key in %s' % str(self.all_keys)
 
-        self.batch_size = cfg.BATCH_SIZE
+        self.batch_size = batch_size
 
         self.class_info = utils.load_ids()
         self.n_classes = len(self.class_info)
@@ -87,7 +91,12 @@ class PascalVOC(Dataset):
                 parts = line.strip().split(',')
                 ground_truth = [int(val) for val in parts[1:]]
                 assert all([gt in [-1, 0, 1] for gt in ground_truth])
+
+                if self.mode in ['val', 'test']:
+                    ground_truth = self.convert_multilabel_to_binary(ground_truth)
+
                 samples[parts[0]]['multilabel'] = ground_truth
+                print(type(ground_truth))
 
         # we sort it by # sample to make sure it's always the same order
         self.sample_ids = sorted(samples.keys())
@@ -148,6 +157,15 @@ class PascalVOC(Dataset):
         output['multilabel'] = self.samples[sample_id]['multilabel']
 
         return output
+
+    def convert_multilabel_to_binary(self, multilabel_truth):
+        '''
+        originally the dataset is -1 / 0 / 1 (resp. false / Unknown / true),
+        in this function -1 will be converted to 0 (useful for val and test)
+
+        Useful for val and test sets but not for train because the unknown distinction is used in the loss directly
+        '''
+        y_true_01 = tf.where(tf.equal(multilabel_truth, -1), tf.zeros_like(multilabel_truth), multilabel_truth)
 
     def get_image(self, img_id):
         '''
