@@ -96,7 +96,6 @@ class PascalVOC(Dataset):
                     ground_truth = self.convert_multilabel_to_binary(ground_truth)
 
                 samples[parts[0]]['multilabel'] = ground_truth
-                print(type(ground_truth))
 
         # we sort it by # sample to make sure it's always the same order
         self.sample_ids = sorted(samples.keys())
@@ -165,7 +164,7 @@ class PascalVOC(Dataset):
 
         Useful for val and test sets but not for train because the unknown distinction is used in the loss directly
         '''
-        y_true_01 = tf.where(tf.equal(multilabel_truth, -1), tf.zeros_like(multilabel_truth), multilabel_truth)
+        return np.where(np.equal(multilabel_truth, -1), np.zeros_like(multilabel_truth), multilabel_truth).tolist()
 
     def get_image(self, img_id):
         '''
