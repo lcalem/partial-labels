@@ -17,6 +17,8 @@ from model.callbacks.save_callback import SaveModel
 from model.networks.baseline import Baseline
 from model.utils.config import cfg
 
+ALL_PCT = (10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
+
 
 def parse_options_file(filepath):
     '''
@@ -78,34 +80,53 @@ def exp_init(exps_folder=None, exp_name=None):
 
 class Launcher():
 
-    def __init__(self, exp_folder):
+    def __init__(self, exp_folder, percent=None):
+        '''
+        exp_percents: the known label percentages of the sequential experiments to launch (default: all of them)
+        '''
         self.exp_folder = exp_folder   # still not sure this should go in config or not
+        self.exp_percents = ALL_PCT
+
+        assert (percent is None) or (percent in ALL_PCT), 'percent %s not allowed' % percent
+        if percent is not None:
+            self.exp_percents = [percent]
 
     def launch(self):
         '''
+        launch one experiment per known label proportion
+        '''
+        for p in self.exp_percents:
+            print('\n=====================\nLaunching experiment for percentage %s \n' % p)
+            self.launch_percentage(p)
+            print('\n=====================')
+
+    def launch_percentage(self, p):
+        '''
+        For a given known label percentage p:
+
         1. load dataset
         3. callbacks
         4. load / build model
         5. train
         '''
 
-        dataset_train = self.load_dataset(mode='train', y_keys=['multilabel'])
+        dataset_train = self.load_dataset(mode='train', y_keys=['multilabel'], percentage=p)
         dataset_val = self.load_dataset(mode='val', y_keys=['multilabel'])
 
         # callbacks
-        cb_list = self.build_callbacks(dataset_val)
+        cb_list = self.build_callbacks(dataset_val, p)
 
         # model
         self.build_model(dataset_train.n_classes)
         self.model.train(dataset_train, steps_per_epoch=len(dataset_train), cb_list=cb_list, dataset_val=dataset_val)
 
-    def load_dataset(self, mode, y_keys):
+    def load_dataset(self, mode, y_keys, percentage=None):
         '''
         we keep an ugly switch for now
         TODO: better dataset mode management
         '''
         if cfg.DATASET.NAME == 'pascalvoc':
-            dataset = PascalVOC(cfg.DATASET.PATH, mode, x_keys=['image'], y_keys=y_keys)
+            dataset = PascalVOC(cfg.DATASET.PATH, mode, x_keys=['image'], y_keys=y_keys, p=percentage)
         else:
             raise Exception('Unknown dataset %s' % cfg.DATASET.NAME)
 
@@ -120,8 +141,10 @@ class Launcher():
 
         self.model.build()
 
-    def build_callbacks(self, dataset_val):
+    def build_callbacks(self, dataset_val, prop):
         '''
+        prop = proportion of known labels of current run
+
         TensorBoard
         SaveModel
         MAPCallback
@@ -129,7 +152,7 @@ class Launcher():
         cb_list = list()
 
         # tensorboard
-        logs_folder = os.environ['HOME'] + '/partial_experiments/tensorboard/' + self.exp_folder.split('/')[-1]
+        logs_folder = os.environ['HOME'] + '/partial_experiments/tensorboard/' + self.exp_folder.split('/')[-1] + '/prop%s' % prop
         print('Tensorboard log folder %s' % logs_folder)
         tensorboard = TensorBoard(log_dir=os.path.join(logs_folder, 'tensorboard'))
         cb_list.append(tensorboard)
@@ -140,7 +163,7 @@ class Launcher():
         # cb_list.append(map_cb)
 
         # Save Model
-        cb_list.append(SaveModel(self.exp_folder))
+        cb_list.append(SaveModel(self.exp_folder, prop))
 
         return cb_list
 
@@ -150,6 +173,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
     parser.add_argument('--gpu', '-g', required=True, help='# of the gpu device')
+    parser.add_argument('--percent', '-p', type=int, help='the specific percentage of known labels. When not specified all percentages are sequentially launched')
     parser.add_argument('--exp_name', '-n', help='optional experiment name')
 
     args = parser.parse_args()
@@ -161,7 +185,7 @@ if __name__ == '__main__':
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
-    launcher = Launcher(exp_folder)
+    launcher = Launcher(exp_folder, percent=args.percent)
     launcher.launch()
 
 
