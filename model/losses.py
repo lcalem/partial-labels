@@ -39,3 +39,21 @@ class BCE(BaseLoss):
 
         else:
             return final_bce
+
+
+LOSSES = {
+    'bce': BCE
+}
+
+
+def get_losses(self, loss_names):
+    '''
+    Return instanciated losses
+    '''
+    return [get_loss(name) for name in loss_names]
+
+
+def get_loss(self, loss_name):
+    '''
+    '''
+    return LOSSES[loss_name]()

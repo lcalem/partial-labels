@@ -12,12 +12,11 @@ keras_applications.set_keras_submodules(
 )
 
 from tensorflow.keras import Model, Input
-# from tensorflow.keras.applications import ResNet101, ResNet50
+from tensorflow.keras.applications import ResNet50
 
 from tensorflow.keras.layers import Dense, Flatten
-from tensorflow.keras.optimizers import RMSprop, Adam
 
-from model.losses import BCE
+from model.losses import get_loss
 from model.metrics import MAP
 from model.networks import BaseModel
 
@@ -42,7 +41,7 @@ class Baseline(BaseModel):
         self.log('Outputs shape %s' % str(self.model.output_shape))
 
         optimizer = self.build_optimizer()
-        loss = BCE()
+        loss = get_loss(cfg.ARCHI.LOSS)
         self.model.compile(loss=loss, optimizer=optimizer)
 
         if self.verbose:
@@ -50,19 +49,15 @@ class Baseline(BaseModel):
             self.model.summary()
 
     def build_classifier(self):
-        cls_model = keras_applications.resnet.ResNet101(include_top=False, weights='imagenet', input_shape=self.input_shape)
-        self.cls_model = Model(inputs=cls_model.inputs, outputs=cls_model.output, name='cls_model')
+        resnet = self.load_resnet(cfg.ARCHI.CLASSIFIER)
+        self.cls_model = Model(inputs=resnet.inputs, outputs=resnet.output, name='cls_model')
 
         # if self.verbose:
         #     self.log('Classifier model')
         #     self.cls_model.summary()
 
-    def build_optimizer(self):
-        '''
-        TODO: something better than an ugly switch <3
-        '''
-        if cfg.TRAINING.OPTIMIZER == 'rmsprop':
-            return RMSprop(lr=cfg.TRAINING.START_LR)
-        elif cfg.TRAINING.OPTIMIZER == 'adam':
-            return Adam(lr=cfg.TRAINING.START_LR)
-        raise Exception('Unknown optimizer %s' % cfg.TRAINING.OPTIMIZER)
+    def load_resnet(self, resnet_name):
+        if cfg.ARCHI.CLASSIFIER == 'resnet101':
+            return keras_applications.resnet.ResNet101(include_top=False, weights='imagenet', input_shape=self.input_shape)
+        elif cfg.ARCHI.CLASSIFIER == 'resnet50':
+            return ResNet50(include_top=False, weights='imagenet', input_shape=self.input_shape)
