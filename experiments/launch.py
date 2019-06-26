@@ -168,7 +168,7 @@ class Launcher():
         return cb_list
 
 
-# python3 launch.py -o baseline -g 3
+# python3 launch.py -o baseline50 -g 1
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')

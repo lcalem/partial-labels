@@ -1,8 +1,7 @@
 archi:
     name: baseline
-    weldon:
-        weldon_k_plus: 0.1
-        weldon_k_minus: 0.1
+    classifier: resnet101
+    loss: bce
 dataset:
     name: pascalvoc
     path: /share/DEEPLEARNING/datasets/pascalvoc/

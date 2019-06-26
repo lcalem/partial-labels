@@ -32,6 +32,7 @@ class MAP(BaseMetric):
         '''
         computes the AP for each class and returns it as is
         '''
+        print('type true %s, type pred %s' % (type(y_true), type(y_pred)))
         return metrics.average_precision_score(y_true, y_pred, average=None)
 
 

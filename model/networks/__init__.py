@@ -1,5 +1,6 @@
 
 from tensorflow.keras.models import load_model
+from tensorflow.keras.optimizers import RMSprop, Adam
 
 from model.utils import log
 from model.utils.config import cfg
@@ -52,3 +53,14 @@ class BaseModel(object):
 
     def predict(self, data):
         return self.model.predict(data)
+
+    def build_optimizer(self):
+        '''
+        TODO: something better than an ugly switch <3
+        '''
+        if cfg.TRAINING.OPTIMIZER == 'rmsprop':
+            return RMSprop(lr=cfg.TRAINING.START_LR)
+        elif cfg.TRAINING.OPTIMIZER == 'adam':
+            return Adam(lr=cfg.TRAINING.START_LR)
+        raise Exception('Unknown optimizer %s' % cfg.TRAINING.OPTIMIZER)
+
