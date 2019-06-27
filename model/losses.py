@@ -46,14 +46,14 @@ LOSSES = {
 }
 
 
-def get_losses(self, loss_names):
+def get_losses(loss_names):
     '''
     Return instanciated losses
     '''
     return [get_loss(name) for name in loss_names]
 
 
-def get_loss(self, loss_name):
+def get_loss(loss_name):
     '''
     '''
     return LOSSES[loss_name]()
