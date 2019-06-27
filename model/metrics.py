@@ -36,7 +36,7 @@ class MAP(BaseMetric):
         return metrics.average_precision_score(y_true, y_pred, average=None)
 
 
-def calculate_map(y_pred, y_true):
+def calculate_map(y_true, y_pred):
     num_classes = y_true.shape[1]
     average_precisions = []
 

@@ -26,8 +26,8 @@ class MAPCallback(Callback):
         print('ap scores type %s' % type(ap_scores))
         map_score = sum(ap_scores) / len(ap_scores)
 
-        with open(os.path.join(self.exp_folder, 'map.csv'), 'w+') as f_out:
-            line = '%d,%6f,' % (epoch, map_score) + ','.join(ap_scores) + '\n'
+        with open(os.path.join(self.exp_folder, 'map.csv'), 'a') as f_out:
+            line = '%d,%6f,' % (epoch, map_score) + ','.join([str(s) for s in ap_scores]) + '\n'
             f_out.write(line)
 
         print("interval evaluation - epoch: {:d} - mAP score: {:.6f}".format(epoch, map_score))

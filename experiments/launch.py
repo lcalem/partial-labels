@@ -110,15 +110,15 @@ class Launcher():
         5. train
         '''
 
-        dataset_train = self.load_dataset(mode='train', y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE, percentage=p)
-        dataset_val = self.load_dataset(mode='val', y_keys=['multilabel'], batch_size=2510)  # TODO hard coded size of val omg...
+        self.dataset_train = self.load_dataset(mode='train', y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE, percentage=p)
+        self.dataset_val = self.load_dataset(mode='val', y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE)  # TODO hard coded size of val omg...
 
         # callbacks
-        cb_list = self.build_callbacks(dataset_val, p)
+        cb_list = self.build_callbacks(p)
 
         # model
-        self.build_model(dataset_train.n_classes)
-        self.model.train(dataset_train, steps_per_epoch=len(dataset_train), cb_list=cb_list, dataset_val=dataset_val)
+        self.build_model(self.dataset_train.n_classes)
+        self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list, dataset_val=self.dataset_val)
 
     def load_dataset(self, mode, y_keys, batch_size, percentage=None):
         '''
@@ -141,7 +141,7 @@ class Launcher():
 
         self.model.build()
 
-    def build_callbacks(self, dataset_val, prop):
+    def build_callbacks(self, prop):
         '''
         prop = proportion of known labels of current run
 
@@ -158,7 +158,7 @@ class Launcher():
         cb_list.append(tensorboard)
 
         # MAP
-        # x_val, y_val = dataset_val[0]
+        # x_val, y_val = self.dataset_val[0]
         # map_cb = MAPCallback(x_val, y_val, self.exp_folder)
         # cb_list.append(map_cb)
 
@@ -168,7 +168,7 @@ class Launcher():
         return cb_list
 
 
-# python3 launch.py -o baseline50 -g 1
+# python3 launch.py -o baseline50 -g 0
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
