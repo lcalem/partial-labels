@@ -42,7 +42,7 @@ class Baseline(BaseModel):
 
         optimizer = self.build_optimizer()
         loss = get_loss(cfg.ARCHI.LOSS)
-        self.model.compile(loss=loss, optimizer=optimizer)
+        self.model.compile(loss=loss, optimizer=optimizer, metrics=['binary_accuracy'])
 
         if self.verbose:
             self.log('Final model summary')
