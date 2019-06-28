@@ -20,8 +20,8 @@ def partal_datasets(annotations_path):
     kept_proportions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
     nb_dropped_indexes = [int((100 - prop) * NB_CLASSES / 100) for prop in kept_proportions]
 
-    base_dataset = os.path.join(annotations_path, 'annotations_multilabel_train.csv')
-    partial_paths = [os.path.join(annotations_path, 'annotations_multilabel_train_partial_%s_%s.csv' % (p, seed)) for p in kept_proportions]
+    base_dataset = os.path.join(annotations_path, 'annotations_multilabel_trainval.csv')
+    partial_paths = [os.path.join(annotations_path, 'annotations_multilabel_trainval_partial_%s_%s.csv' % (p, seed)) for p in kept_proportions]
 
     # maybe that's ugly
     with open(base_dataset, 'r') as f_in, \
