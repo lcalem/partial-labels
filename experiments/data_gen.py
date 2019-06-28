@@ -27,7 +27,7 @@ class PascalVOCDataGenerator(object):
     prop: proportion of known labels
     """
 
-    def __init__(self, subset, data_path, prop=100):
+    def __init__(self, subset, data_path, prop=None):
 
         assert subset in ['train', 'val', 'trainval', 'test']
         self.subset = subset
@@ -45,15 +45,18 @@ class PascalVOCDataGenerator(object):
         self.labels = LABELS
         self.nb_classes = len(self.labels) # 20 classes for PascalVOC
         
-        self.load_data()
-        self.dump_data()
+        # Get all the images' ids for the given subset
+        self.images_ids_in_subset = self._get_images_ids_from_subset(self.subset)
+        
+        if self.subset.startswith('train'):
+            self.load_csv_data()
+        else:
+            self.load_data()
         
     def load_data(self):
         '''
         aka: the old way (the working way)
         '''
-        # Get all the images' ids for the given subset
-        self.images_ids_in_subset = self._get_images_ids_from_subset(self.subset)
 
         # Create the id_to_label dict with all the images' ids
         # but the values are arrays with nb_classes (20) zeros
@@ -66,17 +69,17 @@ class PascalVOCDataGenerator(object):
     def load_csv_data(self):
         '''
         the new way
+        /!\ loads with -1 instead of 0 for unknown labels
         '''
-        csv_path = os.path.join(self.data_path, 'Annotations', 'annotations_multilabel_%s_partial_%s_1.csv' % (self.subset, self.prop)
-        
-    def dump_data(self):
-        with open('/home/caleml/trainval_nico.csv', 'w+') as f_out:
-            for img_id, labels in self.id_to_label.items():
-                line = ','.join([img_id] + [str(l) for l in labels]) + '\n'
-                f_out.write(line)
+        csv_path = os.path.join(self.data_path, 'Annotations', 'annotations_multilabel_%s_partial_%s_1.csv' % (self.subset, self.prop))
+        print('loading dataset from %s' % csv_path)
+        with open(csv_path, 'r') as f_csv:
+            for line in f_csv:
+                parts = line.split(',')
+                image_id = parts[0]
+                labels = [int(l) for l in parts[1:]]
+                self.id_to_label[image_id] = labels
                 
-        print('id_to_labels saved to /home/caleml/trainval_nico.csv')
-
     def _initialize_id_to_label_dict(self):
         for image_id in self.images_ids_in_subset:
             self.id_to_label[image_id] = np.zeros(self.nb_classes)
@@ -109,11 +112,15 @@ class PascalVOCDataGenerator(object):
     def get_labels(self, image_id):
         '''
         for tests
-        0 -> -1 for train but not test nor val
+        negative labels:
+        -1 for train 
+        0 for test or val
         '''
         labels = self.id_to_label[image_id]
-        if self.subset.startswith('train'):
-            labels = [-1 if l == 0 else l for l in labels]
+        # if self.subset.startswith('train'):
+            # labels = [-1 if l == 0 else l for l in labels]
+        if self.subset in ['val', 'test']:
+            labels = [0 if l == -1 else l for l in labels]
             
         return labels
 
