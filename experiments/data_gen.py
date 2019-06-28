@@ -23,12 +23,15 @@ class PascalVOCDataGenerator(object):
     Here are the links to download the data :
     val and train  :  http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtrainval_06-Nov-2007.tar
     test           :  http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtest_06-Nov-2007.tar
+    
+    prop: proportion of known labels
     """
 
-    def __init__(self, subset, data_path):
+    def __init__(self, subset, data_path, prop=100):
 
         assert subset in ['train', 'val', 'trainval', 'test']
         self.subset = subset
+        self.prop = prop
 
         self.data_path = data_path
         self.images_path = os.path.join(self.data_path, 'JPEGImages')
@@ -60,11 +63,11 @@ class PascalVOCDataGenerator(object):
         # the label is in the image given by the key
         self._fill_id_to_label_dict_with_classes()
         
-    def load_data_2(self):
+    def load_csv_data(self):
         '''
         the new way
         '''
-        pass
+        csv_path = os.path.join(self.data_path, 'Annotations', 'annotations_multilabel_%s_partial_%s_1.csv' % (self.subset, self.prop)
         
     def dump_data(self):
         with open('/home/caleml/trainval_nico.csv', 'w+') as f_out:

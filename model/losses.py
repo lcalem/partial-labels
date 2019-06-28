@@ -26,7 +26,12 @@ class BCE(BaseLoss):
 
         bce = tf.keras.backend.binary_crossentropy(y_true_01, y_pred)
         weighted_bce = tf.multiply(bce, tf.cast(weights, tf.float32))
-        final_bce = tf.reduce_sum(weighted_bce)
+        
+        # total = bce.shape.as_list()[-1]
+        nonzeros = tf.math.count_nonzero(weighted_bce, -1)
+        batch_sum = tf.math.reduce_sum(weighted_bce, axis=-1)
+        # final_bce = batch_sum / total
+        final_bce = batch_sum / tf.cast(nonzeros, tf.float32)
 
         if trace:
             return {
@@ -34,11 +39,12 @@ class BCE(BaseLoss):
                 'weighted_bce': weighted_bce,
                 'bce': bce,
                 'weights': weights,
-                'y_true_01': y_true_01
+                'y_true_01': y_true_01,
+                'nonzeros': nonzeros
             }
 
         else:
-            return final_bce
+            return final_bce 
 
 
 LOSSES = {

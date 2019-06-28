@@ -7,7 +7,7 @@ import tensorflow as tf
 from model import losses
 
 
-def test_bce_weights(gpu=0):
+def test_bce_weights(gpu=1):
     y_true = np.array([[-1, -1, 1, 1],
                        [1, -1, -1, 0],
                        [-1, 1, 1, -1],
@@ -32,8 +32,12 @@ def test_bce_weights(gpu=0):
     sess.run(tf.local_variables_initializer())
     bce_value = sess.run(bce_value_op)
     print('bce_value %s' % str(bce_value))
+    assert bce_value['final_bce'].shape == (6,)
+    
+    nonzeros_gt = [4, 3, 4, 3, 4, 3]
+    assert all([bce_value['nonzeros'][i] == gt for i, gt in enumerate(nonzeros_gt)])
 
-    assert 15.259881 < bce_value['final_bce'] < 15.259883
+    assert all([0 < val < 5 for val in bce_value['final_bce']])
 
 
 if __name__ == '__main__':
