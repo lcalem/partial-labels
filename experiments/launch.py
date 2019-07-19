@@ -17,6 +17,12 @@ from model.callbacks.save_callback import SaveModel
 from model.networks.baseline import Baseline
 from model.utils.config import cfg
 
+from experiments.data_gen import PascalVOCDataGenerator
+from tensorflow.keras.applications import ResNet50
+from tensorflow.keras import Model, Input
+from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.layers import Dense, Flatten, GlobalAveragePooling2D
+
 ALL_PCT = (10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
 
 
@@ -86,6 +92,7 @@ class Launcher():
         '''
         self.exp_folder = exp_folder   # still not sure this should go in config or not
         self.exp_percents = ALL_PCT
+        self.data_dir = '/share/DEEPLEARNING/datasets/pascalvoc/VOCdevkit/VOC2007/'
 
         assert (percent is None) or (percent in ALL_PCT), 'percent %s not allowed' % percent
         if percent is not None:
@@ -111,14 +118,23 @@ class Launcher():
         '''
 
         self.dataset_train = self.load_dataset(mode='train', y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE, percentage=p)
-        self.dataset_val = self.load_dataset(mode='val', y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE)  # TODO hard coded size of val omg...
+        # self.dataset_val = self.load_dataset(mode='val', y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE)  # TODO hard coded size of val omg...
+        self.dataset_val = PascalVOCDataGenerator('test', self.data_dir)
 
         # callbacks
         cb_list = self.build_callbacks(p)
 
         # model
-        self.build_model(self.dataset_train.n_classes)
-        self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list, dataset_val=self.dataset_val)
+        self.build_model(self.dataset_train.nb_classes)
+        # self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list, dataset_val=self.dataset_val)
+        batch_size=32
+        nb_epochs=20
+        steps_per_epoch_train = int(len(self.dataset_train.id_to_label) / batch_size) + 1
+        self.model.fit_generator(self.dataset_train.flow(batch_size=batch_size),
+                                 steps_per_epoch=steps_per_epoch_train,
+                                 epochs=nb_epochs,
+                                 callbacks=cb_list,
+                                 verbose=1)
 
     def load_dataset(self, mode, y_keys, batch_size, percentage=None):
         '''
@@ -126,7 +142,9 @@ class Launcher():
         TODO: better dataset mode management
         '''
         if cfg.DATASET.NAME == 'pascalvoc':
-            dataset = PascalVOC(cfg.DATASET.PATH, batch_size, mode, x_keys=['image'], y_keys=y_keys, p=percentage)
+            dataset = PascalVOCDataGenerator('trainval', self.data_dir, prop=percentage, force_old=True)
+
+            # dataset = PascalVOC(cfg.DATASET.PATH, batch_size, mode, x_keys=['image'], y_keys=y_keys, p=percentage)
         else:
             raise Exception('Unknown dataset %s' % cfg.DATASET.NAME)
 
@@ -137,9 +155,10 @@ class Launcher():
         TODO: we keep an ugly switch for now, do a more elegant importlib base loader after
         '''
         if cfg.ARCHI.NAME == 'baseline':
-            self.model = Baseline(self.exp_folder, n_classes)
+            # self.model = Baseline(self.exp_folder, n_classes)
+            self.model = self.temporary_model(n_classes)
 
-        self.model.build()
+        # self.model.build()
 
     def build_callbacks(self, prop):
         '''
@@ -158,17 +177,47 @@ class Launcher():
         cb_list.append(tensorboard)
 
         # MAP
+        batch_size = len(self.dataset_val.images_ids_in_subset)
+        generator_test = self.dataset_val.flow(batch_size=batch_size)
+        print("test data length %s" % len(self.dataset_val.images_ids_in_subset))
+        X_test, Y_test = next(generator_test)
+
         # x_val, y_val = self.dataset_val[0]
-        # map_cb = MAPCallback(x_val, y_val, self.exp_folder)
-        # cb_list.append(map_cb)
+        map_cb = MAPCallback(X_test, Y_test, self.exp_folder)
+        cb_list.append(map_cb)
 
         # Save Model
         cb_list.append(SaveModel(self.exp_folder, prop))
 
         return cb_list
 
+    def temporary_model(self, nb_classes):
+        # model = ResNet50(include_top=True, weights='imagenet')
+        # x = model.layers[-2].output
+        # x = Dense(n_classes, activation='sigmoid', name='predictions')(x)
+        # model = Model(inputs=model.input, outputs=x)
 
-# python3 launch.py -o baseline50 -g 0
+        # lr = 0.1
+        # model.compile(loss='binary_crossentropy', optimizer=SGD(lr=lr), metrics=['binary_accuracy'])
+        # model.summary()
+        # return model
+
+        input_shape = (224, 224, 3)
+        resnet = ResNet50(include_top=False, weights='imagenet', input_shape=input_shape)
+
+        inp = Input(shape=input_shape, name='image_input')
+        x = resnet(inp)
+        x = GlobalAveragePooling2D()(x)
+        output = Dense(nb_classes, activation='sigmoid')(x)
+        model = Model(inputs=inp, outputs=output)
+
+        lr = 0.1
+        model.compile(loss='binary_crossentropy', optimizer=SGD(lr=lr), metrics=['binary_accuracy'])
+        model.summary()
+        return model
+
+
+# python3 launch.py -o baseline50 -g 1 -p 100
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
