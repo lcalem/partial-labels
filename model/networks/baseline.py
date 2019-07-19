@@ -14,7 +14,7 @@ keras_applications.set_keras_submodules(
 from tensorflow.keras import Model, Input
 from tensorflow.keras.applications import ResNet50
 
-from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.layers import Dense, Flatten, GlobalAveragePooling2D
 
 from model.losses import get_loss
 from model.metrics import MAP
@@ -34,7 +34,7 @@ class Baseline(BaseModel):
         x = self.cls_model(inp)
 
         # dense + sigmoid for multilabel classification
-        x = Flatten()(x)
+        x = GlobalAveragePooling2D()(x)
         output = Dense(self.n_classes, activation='sigmoid')(x)
 
         self.model = Model(inputs=inp, outputs=output)
@@ -49,15 +49,13 @@ class Baseline(BaseModel):
             self.model.summary()
 
     def build_classifier(self):
-        resnet = self.load_resnet(cfg.ARCHI.CLASSIFIER)
+        if cfg.ARCHI.CLASSIFIER == 'resnet101':
+            resnet = keras_applications.resnet.ResNet101(include_top=False, weights='imagenet', input_shape=self.input_shape)
+        elif cfg.ARCHI.CLASSIFIER == 'resnet50':
+            resnet = ResNet50(include_top=False, weights='imagenet', input_shape=self.input_shape)
+
         self.cls_model = Model(inputs=resnet.inputs, outputs=resnet.output, name='cls_model')
 
         # if self.verbose:
         #     self.log('Classifier model')
         #     self.cls_model.summary()
-
-    def load_resnet(self, resnet_name):
-        if cfg.ARCHI.CLASSIFIER == 'resnet101':
-            return keras_applications.resnet.ResNet101(include_top=False, weights='imagenet', input_shape=self.input_shape)
-        elif cfg.ARCHI.CLASSIFIER == 'resnet50':
-            return ResNet50(include_top=False, weights='imagenet', input_shape=self.input_shape)
