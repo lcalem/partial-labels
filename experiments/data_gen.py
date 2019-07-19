@@ -23,7 +23,7 @@ class PascalVOCDataGenerator(object):
     Here are the links to download the data :
     val and train  :  http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtrainval_06-Nov-2007.tar
     test           :  http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtest_06-Nov-2007.tar
-    
+
     prop: proportion of known labels
     """
 
@@ -44,15 +44,15 @@ class PascalVOCDataGenerator(object):
 
         self.labels = LABELS
         self.nb_classes = len(self.labels) # 20 classes for PascalVOC
-        
+
         # Get all the images' ids for the given subset
         self.images_ids_in_subset = self._get_images_ids_from_subset(self.subset)
-        
+
         if not force_old and self.subset.startswith('train'):
             self.load_csv_data()
         else:
             self.load_data()
-        
+
     def load_data(self):
         '''
         aka: the old way (the working way)
@@ -65,7 +65,7 @@ class PascalVOCDataGenerator(object):
         # Fill the values in the id_to_label dict by putting 1 when
         # the label is in the image given by the key
         self._fill_id_to_label_dict_with_classes()
-        
+
     def load_csv_data(self):
         '''
         the new way
@@ -79,7 +79,7 @@ class PascalVOCDataGenerator(object):
                 image_id = parts[0]
                 labels = [int(l) for l in parts[1:]]
                 self.id_to_label[image_id] = labels
-                
+
     def _initialize_id_to_label_dict(self):
         for image_id in self.images_ids_in_subset:
             self.id_to_label[image_id] = np.zeros(self.nb_classes)
@@ -108,12 +108,12 @@ class PascalVOCDataGenerator(object):
         with open(os.path.join(self.labels_path, subset + '.txt'), 'r') as f:
             images_ids = f.read().splitlines()
         return images_ids
-    
+
     def get_labels(self, image_id):
         '''
         for tests
         negative labels:
-        -1 for train 
+        -1 for train
         0 for test or val
         '''
         labels = self.id_to_label[image_id]
@@ -121,7 +121,7 @@ class PascalVOCDataGenerator(object):
             # labels = [-1 if l == 0 else l for l in labels]
         if self.subset in ['val', 'test']:
             labels = [0 if l == -1 else l for l in labels]
-            
+
         return labels
 
     def flow(self, batch_size=32):
