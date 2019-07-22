@@ -17,6 +17,8 @@ class BaseModel(object):
         self.input_shape = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.N_CHANNELS)
         self.verbose = cfg.VERBOSE
 
+        print("Init input_shape %s" % str(self.input_shape))
+
     def log(self, msg):
         if self.verbose:
             log.printcn(log.HEADER, msg)
@@ -34,7 +36,6 @@ class BaseModel(object):
     def train(self, data_tr, steps_per_epoch, cb_list, dataset_val=None):
 
         print("Training with %s callbacks" % len(cb_list))
-
         kwargs = {
             'steps_per_epoch': steps_per_epoch,
             'epochs': cfg.TRAINING.N_EPOCHS,
