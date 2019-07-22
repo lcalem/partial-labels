@@ -15,7 +15,7 @@ cfg.DEBUG.IS_TEST = False
 # size of images
 cfg.IMAGE = edict()
 cfg.IMAGE.N_CHANNELS = 3
-cfg.IMAGE.IMG_SIZE = 448
+cfg.IMAGE.IMG_SIZE = 224
 
 cfg.DATASET = edict()
 cfg.DATASET.SHUFFLE = True

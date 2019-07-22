@@ -1,0 +1,12 @@
+archi:
+    name: baseline
+    classifier: resnet50
+    loss: bce
+dataset:
+    name: pascalvoc
+    path: /home/caleml/datasets/pascalvoc/
+batch_size: 32
+training:
+    n_epochs: 15
+    optimizer: sgd
+    start_lr: 0.1
