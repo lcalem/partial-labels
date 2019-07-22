@@ -13,6 +13,7 @@ from data import Dataset
 
 IMG_HEIGHT = 224
 IMG_WIDTH = 224
+NB_CLASSES = 80
 
 
 class CocoGenerator(Dataset):
