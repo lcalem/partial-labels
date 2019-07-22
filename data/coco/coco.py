@@ -22,74 +22,34 @@ class CocoGenerator(Dataset):
         '''
         data path is base dir: /share/DEEPLEARNING/datasets/mscoco
         '''
-
         assert subset in ['train', 'val']
+        if prop is not None and subset != 'train':
+            raise Exception('prop only for training')
+            
         self.subset = subset
-        self.prop = prop
+        self.prop = prop or 100
 
         self.data_path = data_path
         self.images_path = os.path.join(self.data_path, '%s2014' % self.subset)
-        self.labels_path = os.path.join(self.data_path, 'annotations', 'instances_%s2014.json' % self.subset)
-
-        self.json_data = self.load_json_data(self.labels_path)
 
         # key: image id // value: image label as one-hot
         self.id_to_label = {}
 
-        # key: coco_id // value: {name: str, norm_id: int}
-        self.cats = self.load_categories()
-        self.nb_classes = len(self.cats)    # 80 classes for MSCoco
-
-        # get all the image ids for the given subset
-        self.image_ids_in_subset = self._get_image_ids()
-
         self.load_data()
 
-    def load_json_data(self, annotations_file):
-        '''
-        open the annotations file only once
-        '''
-        with open(annotations_file, 'r') as f_in:
-            json_data = json.load(f_in)
-        return json_data
-
-    def load_categories(self):
-        '''
-        categories from json_data
-        '''
-        cats = dict()
-        for i, category in enumerate(self.json_data['categories']):
-            cats[category['id']] = {'name': category['name'], 'norm_id': i}
-
-        assert len(cats) == 80
-        return cats
-
-    def _get_image_ids(self):
-        img_ids = list()
-        for img in self.json_data['images']:
-            img_ids.append(img['id'])
-
-        return img_ids
-
     def load_data(self):
-        self._initialize_id_to_label_dict()
-        self._fill_id_to_label_dict_with_classes()
-
-    def _initialize_id_to_label_dict(self):
-        for image_id in self.image_ids_in_subset:
-            self.id_to_label[image_id] = np.zeros(self.nb_classes)
-
-    def _fill_id_to_label_dict_with_classes(self):
-        stats = defaultdict(int)
-
-        for annot in self.json_data['annotations']:
-            cat = annot['category_id']
-            norm_cat = self.cats[cat]['norm_id']
-            stats[cat] += 1
-
-            img_id = annot['image_id']
-
-            self.id_to_label[img_id][norm_cat] = 1
+        if self.subset == 'val':      
+            dataset_path = os.path.join(self.data_path, 'annotations', 'multilabel_val2014.csv')
+        elif self.subset == 'train':
+            dataset_path = os.path.join(self.data_path, 'annotations', 'multilabel_train2014_partial_%s_1.csv' % self.prop)    # TODO: seed
+            
+        print('loading dataset from %s' % csv_path)
+        with open(dataset_path, 'r') as f_in:
+            for line in f_in:
+                parts = line.split(',')
+                image_id = parts[0]
+                labels = [int(l) for l in parts[1:]]
+                self.id_to_label[image_id] = labels
 
     def get_labels(self, image_id):
         '''
