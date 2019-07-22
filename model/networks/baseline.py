@@ -15,6 +15,7 @@ from tensorflow.keras import Model, Input
 from tensorflow.keras.applications import ResNet50
 
 from tensorflow.keras.layers import Dense, Flatten, GlobalAveragePooling2D
+from tensorflow.keras.optimizers import SGD
 
 from model.losses import get_loss
 from model.metrics import MAP
@@ -42,7 +43,9 @@ class Baseline(BaseModel):
 
         optimizer = self.build_optimizer()
         loss = get_loss(cfg.ARCHI.LOSS)
-        self.model.compile(loss=loss, optimizer=optimizer, metrics=['binary_accuracy'])
+        # self.model.compile(loss=loss, optimizer=optimizer, metrics=['binary_accuracy'])
+        lr = 0.1
+        self.model.compile(loss='binary_crossentropy', optimizer=SGD(lr=lr), metrics=['binary_accuracy'])
 
         if self.verbose:
             self.log('Final model summary')

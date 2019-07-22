@@ -126,15 +126,11 @@ class Launcher():
 
         # model
         self.build_model(self.dataset_train.nb_classes)
+        
         # self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list, dataset_val=self.dataset_val)
-        batch_size=32
-        nb_epochs=20
-        steps_per_epoch_train = int(len(self.dataset_train.id_to_label) / batch_size) + 1
-        self.model.fit_generator(self.dataset_train.flow(batch_size=batch_size),
-                                 steps_per_epoch=steps_per_epoch_train,
-                                 epochs=nb_epochs,
-                                 callbacks=cb_list,
-                                 verbose=1)
+        steps_per_epoch_train = int(len(self.dataset_train.id_to_label) / cfg.BATCH_SIZE) + 1
+        train_generator = self.dataset_train.flow(batch_size=cfg.BATCH_SIZE)
+        self.model.train(self.dataset_train, steps_per_epoch=steps_per_epoch_train, cb_list=cb_list, dataset_val=self.dataset_val)
 
     def load_dataset(self, mode, y_keys, batch_size, percentage=None):
         '''
@@ -154,11 +150,11 @@ class Launcher():
         '''
         TODO: we keep an ugly switch for now, do a more elegant importlib base loader after
         '''
+        print("building model")
         if cfg.ARCHI.NAME == 'baseline':
-            # self.model = Baseline(self.exp_folder, n_classes)
-            self.model = self.temporary_model(n_classes)
+            self.model = Baseline(self.exp_folder, n_classes)
 
-        # self.model.build()
+        self.model.build()
 
     def build_callbacks(self, prop):
         '''
@@ -168,6 +164,7 @@ class Launcher():
         SaveModel
         MAPCallback
         '''
+        print("building callbacks")
         cb_list = list()
 
         # tensorboard
@@ -190,31 +187,6 @@ class Launcher():
         cb_list.append(SaveModel(self.exp_folder, prop))
 
         return cb_list
-
-    def temporary_model(self, nb_classes):
-        # model = ResNet50(include_top=True, weights='imagenet')
-        # x = model.layers[-2].output
-        # x = Dense(n_classes, activation='sigmoid', name='predictions')(x)
-        # model = Model(inputs=model.input, outputs=x)
-
-        # lr = 0.1
-        # model.compile(loss='binary_crossentropy', optimizer=SGD(lr=lr), metrics=['binary_accuracy'])
-        # model.summary()
-        # return model
-
-        input_shape = (224, 224, 3)
-        resnet = ResNet50(include_top=False, weights='imagenet', input_shape=input_shape)
-
-        inp = Input(shape=input_shape, name='image_input')
-        x = resnet(inp)
-        x = GlobalAveragePooling2D()(x)
-        output = Dense(nb_classes, activation='sigmoid')(x)
-        model = Model(inputs=inp, outputs=output)
-
-        lr = 0.1
-        model.compile(loss='binary_crossentropy', optimizer=SGD(lr=lr), metrics=['binary_accuracy'])
-        model.summary()
-        return model
 
 
 # python3 launch.py -o baseline50 -g 1 -p 100
