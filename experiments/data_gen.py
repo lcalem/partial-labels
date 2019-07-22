@@ -116,40 +116,31 @@ class PascalVOCDataGenerator(object):
 
         return labels
 
-    def flow(self, batch_size=32):
-        """flow
-        This is a generator which load the images and preprocess them on the fly
-        When calling next python build in function, it returns a batch with a given size
-        with a X_batch of size (None, IMG_HEIGHT, IMG_WIDTH, 3)
-        and a Y_batch of size (None, nb_classes)
-        The first dimension is the batch_size if there is enough images left otherwise
-        it will be less
-
-        :param batch_size: the batch's size
-        """
+    def flow(self, batch_size):
+        '''
+        X_batch of size (None, IMG_HEIGHT, IMG_WIDTH, 3)
+        Y_batch of size (None, nb_classes)
+        '''
         nb_batches = int(len(self.images_ids_in_subset) / batch_size) + 1
         while True:
-            # Before each epoch we shuffle the images' ids
             random.shuffle(self.images_ids_in_subset)
+
             for i in range(nb_batches):
-                # We first get all the images' ids for the next batch
-                current_bach = self.images_ids_in_subset[i*batch_size:(i+1)*batch_size]
+                # image ids
+                current_bach = self.images_ids_in_subset[i * batch_size:(i + 1) * batch_size]
                 X_batch = []
                 Y_batch = []
                 for image_id in current_bach:
-                    # Load the image and resize it. We get a PIL Image object
+
                     img = image.load_img(os.path.join(self.images_path, image_id + '.jpg'), grayscale=False, target_size=(IMG_HEIGHT, IMG_WIDTH))
-                    # Cast the Image object to a numpy array and put the channel has the last dimension
                     img_arr = image.img_to_array(img, data_format='channels_last')
                     X_batch.append(img_arr)
                     # Y_batch.append(self.id_to_label[image_id])
                     Y_batch.append(self.get_labels(image_id))
-                # resize X_batch in (batch_size, IMG_HEIGHT, IMG_WIDTH, 3)
+
                 X_batch = np.reshape(X_batch, (-1, IMG_HEIGHT, IMG_WIDTH, 3))
-                # resize Y_batch in (None, nb_classes)
                 Y_batch = np.reshape(Y_batch, (-1, self.nb_classes))
-                # The preprocess consists of substracting the ImageNet RGB means values
-                # https://github.com/keras-team/keras/blob/master/keras/applications/imagenet_utils.py#L72
+
                 X_batch = preprocess_input(X_batch, data_format='channels_last')
                 yield(X_batch, Y_batch)
 
