@@ -17,15 +17,9 @@ LABELS = ['aeroplane', 'bicycle', 'bird', 'boat',
 
 
 class PascalVOCDataGenerator(object):
-    """
-    PascalVOCDataGenerator defines a generator on the PascalVOC 2007 dataset
-
-    Here are the links to download the data :
-    val and train  :  http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtrainval_06-Nov-2007.tar
-    test           :  http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtest_06-Nov-2007.tar
-
+    '''
     prop: proportion of known labels
-    """
+    '''
 
     def __init__(self, subset, data_path, prop=None, force_old=False):
 
@@ -37,18 +31,16 @@ class PascalVOCDataGenerator(object):
         self.images_path = os.path.join(self.data_path, 'JPEGImages')
         self.labels_path = os.path.join(self.data_path, 'ImageSets', 'Main')
 
-        # The id_to_label dict has the following structure
-        # key : image's id (e.g. 00084)
-        # value : image's label (e.g. [0, 0, 1, 0, ..., 1, 0])
+        # key: image id // value: image label as one-hot
         self.id_to_label = {}
 
         self.labels = LABELS
-        self.nb_classes = len(self.labels) # 20 classes for PascalVOC
+        self.nb_classes = len(self.labels)  # 20 classes for PascalVOC
 
         # Get all the images' ids for the given subset
         self.images_ids_in_subset = self._get_images_ids_from_subset(self.subset)
 
-        if not force_old and self.subset.startswith('train'):
+        if not force_old:
             self.load_csv_data()
         else:
             self.load_data()
@@ -57,21 +49,21 @@ class PascalVOCDataGenerator(object):
         '''
         aka: the old way (the working way)
         '''
-
-        # Create the id_to_label dict with all the images' ids
-        # but the values are arrays with nb_classes (20) zeros
         self._initialize_id_to_label_dict()
 
-        # Fill the values in the id_to_label dict by putting 1 when
-        # the label is in the image given by the key
         self._fill_id_to_label_dict_with_classes()
 
     def load_csv_data(self):
         '''
         the new way
-        /!\ loads with -1 instead of 0 for unknown labels
+        /!\ loads with -1 instead of 0 for false labels
+        0 are for unknown labels
         '''
-        csv_path = os.path.join(self.data_path, 'Annotations', 'annotations_multilabel_%s_partial_%s_1.csv' % (self.subset, self.prop))
+        if self.subset in ['val', 'test']:
+            csv_path = os.path.join(self.data_path, 'Annotations', 'annotations_multilabel_%s.csv' % self.subset)
+        else:
+            csv_path = os.path.join(self.data_path, 'Annotations', 'annotations_multilabel_%s_partial_%s_1.csv' % (self.subset, self.prop))
+
         print('loading dataset from %s' % csv_path)
         with open(csv_path, 'r') as f_csv:
             for line in f_csv:
