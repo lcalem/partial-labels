@@ -1,6 +1,6 @@
 
 from tensorflow.keras.models import load_model
-from tensorflow.keras.optimizers import RMSprop, Adam
+from tensorflow.keras.optimizers import RMSprop, Adam, SGD
 
 from model.utils import log
 from model.utils.config import cfg
@@ -63,5 +63,8 @@ class BaseModel(object):
             return RMSprop(lr=cfg.TRAINING.START_LR)
         elif cfg.TRAINING.OPTIMIZER == 'adam':
             return Adam(lr=cfg.TRAINING.START_LR)
+        elif cfg.TRAINING.OPTIMIZER == 'sgd':
+            return SGD(lr=cfg.TRAINING.START_LR)
+
         raise Exception('Unknown optimizer %s' % cfg.TRAINING.OPTIMIZER)
 

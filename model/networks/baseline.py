@@ -15,7 +15,6 @@ from tensorflow.keras import Model, Input
 from tensorflow.keras.applications import ResNet50
 
 from tensorflow.keras.layers import Dense, Flatten, GlobalAveragePooling2D
-from tensorflow.keras.optimizers import SGD
 
 from model.losses import get_loss
 from model.metrics import MAP
@@ -26,7 +25,10 @@ from model.utils.config import cfg
 
 class Baseline(BaseModel):
 
-    def build(self):
+    def build(self, p):
+        '''
+        that p here is really ugly
+        '''
         self.build_classifier()
 
         inp = Input(shape=self.input_shape, name='image_input')
@@ -42,10 +44,8 @@ class Baseline(BaseModel):
         self.log('Outputs shape %s' % str(self.model.output_shape))
 
         optimizer = self.build_optimizer()
-        loss = get_loss(cfg.ARCHI.LOSS)
-        # self.model.compile(loss=loss, optimizer=optimizer, metrics=['binary_accuracy'])
-        lr = 0.1
-        self.model.compile(loss='binary_crossentropy', optimizer=SGD(lr=lr), metrics=['binary_accuracy'])
+        loss = get_loss(cfg.ARCHI.LOSS, params={'prop': p})
+        self.model.compile(loss=loss, optimizer=optimizer, metrics=['binary_accuracy'])
 
         if self.verbose:
             self.log('Final model summary')

@@ -91,12 +91,19 @@ class Launcher():
         exp_percents: the known label percentages of the sequential experiments to launch (default: all of them)
         '''
         self.exp_folder = exp_folder   # still not sure this should go in config or not
-        self.exp_percents = ALL_PCT
         self.data_dir = '/share/DEEPLEARNING/datasets/pascalvoc/VOCdevkit/VOC2007/'
 
-        assert (percent is None) or (percent in ALL_PCT), 'percent %s not allowed' % percent
-        if percent is not None:
+        if percent is None:
+            self.exp_percents = ALL_PCT
+        elif isinstance(percent, int):
+            assert percent in ALL_PCT
             self.exp_percents = [percent]
+        elif isinstance(percent, str):
+            parts = [int(p) for p in percent.split(',')]
+            assert all([p in ALL_PCT for p in parts])
+            self.exp_percents = parts
+
+        print('Launching with percentages %s' % str(self.exp_percents))
 
     def launch(self):
         '''
@@ -117,28 +124,24 @@ class Launcher():
         5. train
         '''
 
-        self.dataset_train = self.load_dataset(mode='train', y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE, percentage=p)
-        # self.dataset_val = self.load_dataset(mode='val', y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE)  # TODO hard coded size of val omg...
-        self.dataset_val = PascalVOCDataGenerator('test', self.data_dir)
+        self.dataset_train = self.load_dataset(mode='trainval', y_keys=['multilabel'], percentage=p)
+        self.dataset_test = self.load_dataset(mode='test', y_keys=['multilabel'])
 
         # callbacks
         cb_list = self.build_callbacks(p)
 
         # model
-        self.build_model(self.dataset_train.nb_classes)
-        
-        # self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list, dataset_val=self.dataset_val)
-        steps_per_epoch_train = int(len(self.dataset_train.id_to_label) / cfg.BATCH_SIZE) + 1
-        train_generator = self.dataset_train.flow(batch_size=cfg.BATCH_SIZE)
-        self.model.train(self.dataset_train, steps_per_epoch=steps_per_epoch_train, cb_list=cb_list, dataset_val=self.dataset_val)
+        self.build_model(self.dataset_train.nb_classes, p)
+        steps_per_epoch = int(len(self.dataset_train.id_to_label) / cfg.BATCH_SIZE) + 1
+        self.model.train(self.dataset_train.flow(batch_size=cfg.BATCH_SIZE), steps_per_epoch=steps_per_epoch, cb_list=cb_list)
 
-    def load_dataset(self, mode, y_keys, batch_size, percentage=None):
+    def load_dataset(self, mode, y_keys, percentage=None):
         '''
         we keep an ugly switch for now
         TODO: better dataset mode management
         '''
         if cfg.DATASET.NAME == 'pascalvoc':
-            dataset = PascalVOCDataGenerator('trainval', self.data_dir, prop=percentage, force_old=True)
+            dataset = PascalVOCDataGenerator(mode, self.data_dir, prop=percentage)
 
             # dataset = PascalVOC(cfg.DATASET.PATH, batch_size, mode, x_keys=['image'], y_keys=y_keys, p=percentage)
         else:
@@ -146,7 +149,7 @@ class Launcher():
 
         return dataset
 
-    def build_model(self, n_classes):
+    def build_model(self, n_classes, p):
         '''
         TODO: we keep an ugly switch for now, do a more elegant importlib base loader after
         '''
@@ -154,7 +157,7 @@ class Launcher():
         if cfg.ARCHI.NAME == 'baseline':
             self.model = Baseline(self.exp_folder, n_classes)
 
-        self.model.build()
+        self.model.build(p / 100)
 
     def build_callbacks(self, prop):
         '''
@@ -174,13 +177,13 @@ class Launcher():
         cb_list.append(tensorboard)
 
         # MAP
-        batch_size = len(self.dataset_val.images_ids_in_subset)
-        generator_test = self.dataset_val.flow(batch_size=batch_size)
-        print("test data length %s" % len(self.dataset_val.images_ids_in_subset))
+        batch_size = len(self.dataset_test.images_ids_in_subset)
+        generator_test = self.dataset_test.flow(batch_size=batch_size)
+        print("test data length %s" % len(self.dataset_test.images_ids_in_subset))
         X_test, Y_test = next(generator_test)
 
-        # x_val, y_val = self.dataset_val[0]
-        map_cb = MAPCallback(X_test, Y_test, self.exp_folder)
+        # x_val, y_val = self.dataset_test[0]
+        map_cb = MAPCallback(X_test, Y_test, self.exp_folder, prop)
         cb_list.append(map_cb)
 
         # Save Model
@@ -189,12 +192,14 @@ class Launcher():
         return cb_list
 
 
-# python3 launch.py -o baseline50 -g 1 -p 100
+# python3 launch.py -o pv_baseline50_sgd -g 1 -p 100
+# python3 launch.py -o pv_baseline50_sgd -g 2 -p 10,30,50,70,90
+# python3 launch.py -o pv_partial50_sgd -g 2 -p 10
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
     parser.add_argument('--gpu', '-g', required=True, help='# of the gpu device')
-    parser.add_argument('--percent', '-p', type=int, help='the specific percentage of known labels. When not specified all percentages are sequentially launched')
+    parser.add_argument('--percent', '-p', help='the specific percentage of known labels. When not specified all percentages are sequentially launched')
     parser.add_argument('--exp_name', '-n', help='optional experiment name')
 
     args = parser.parse_args()
