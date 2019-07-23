@@ -144,3 +144,6 @@ class PascalVOCDataGenerator(object):
                 X_batch = preprocess_input(X_batch, data_format='channels_last')
                 yield(X_batch, Y_batch)
 
+    def __len__(self):
+        return len(self.id_to_label)
+    
