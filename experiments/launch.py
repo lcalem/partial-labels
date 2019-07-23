@@ -11,13 +11,14 @@ from tensorflow.keras.callbacks import TensorBoard
 from config import config_utils
 
 from data.pascalvoc.pascalvoc import PascalVOC
+from data.coco.coco import CocoGenerator
+from experiments.data_gen import PascalVOCDataGenerator
 
 from model.callbacks.metric_callbacks import MAPCallback
 from model.callbacks.save_callback import SaveModel
 from model.networks.baseline import Baseline
 from model.utils.config import cfg
 
-from experiments.data_gen import PascalVOCDataGenerator
 from tensorflow.keras.applications import ResNet50
 from tensorflow.keras import Model, Input
 from tensorflow.keras.optimizers import SGD
@@ -91,7 +92,7 @@ class Launcher():
         exp_percents: the known label percentages of the sequential experiments to launch (default: all of them)
         '''
         self.exp_folder = exp_folder   # still not sure this should go in config or not
-        self.data_dir = '/share/DEEPLEARNING/datasets/pascalvoc/VOCdevkit/VOC2007/'
+        self.data_dir = cfg.DATASET.PATH
 
         if percent is None:
             self.exp_percents = ALL_PCT
@@ -124,8 +125,8 @@ class Launcher():
         5. train
         '''
 
-        self.dataset_train = self.load_dataset(mode='trainval', y_keys=['multilabel'], percentage=p)
-        self.dataset_test = self.load_dataset(mode='test', y_keys=['multilabel'])
+        self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, y_keys=['multilabel'], percentage=p)
+        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, y_keys=['multilabel'])
 
         # callbacks
         cb_list = self.build_callbacks(p)
@@ -144,6 +145,8 @@ class Launcher():
             dataset = PascalVOCDataGenerator(mode, self.data_dir, prop=percentage)
 
             # dataset = PascalVOC(cfg.DATASET.PATH, batch_size, mode, x_keys=['image'], y_keys=y_keys, p=percentage)
+        elif cfg.DATASET.NAME == 'coco':
+            dataset = CocoGenerator(mode, self.data_dir, prop=percentage)
         else:
             raise Exception('Unknown dataset %s' % cfg.DATASET.NAME)
 
@@ -152,6 +155,7 @@ class Launcher():
     def build_model(self, n_classes, p):
         '''
         TODO: we keep an ugly switch for now, do a more elegant importlib base loader after
+        TODO: that percentage omg
         '''
         print("building model")
         if cfg.ARCHI.NAME == 'baseline':
@@ -177,9 +181,9 @@ class Launcher():
         cb_list.append(tensorboard)
 
         # MAP
-        batch_size = len(self.dataset_test.images_ids_in_subset)
+        batch_size = len(self.dataset_test)
         generator_test = self.dataset_test.flow(batch_size=batch_size)
-        print("test data length %s" % len(self.dataset_test.images_ids_in_subset))
+        print("test data length %s" % len(self.dataset_test))
         X_test, Y_test = next(generator_test)
 
         # x_val, y_val = self.dataset_test[0]
@@ -195,6 +199,9 @@ class Launcher():
 # python3 launch.py -o pv_baseline50_sgd -g 1 -p 100
 # python3 launch.py -o pv_baseline50_sgd -g 2 -p 10,30,50,70,90
 # python3 launch.py -o pv_partial50_sgd -g 2 -p 10
+# python3 launch.py -o coco_baseline50_sgd -g 1 -p 100
+# python3 launch.py -o coco_baseline50_sgd -g 2 -p 90,70,50,30,10
+# python3 launch.py -o coco_partial50_sgd -g 3 -p 90,70,50,30,10
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')

@@ -69,5 +69,30 @@ def test_map_metric():
     pprint(map_values)
 
 
+def test_separate_map():
+    y_true = np.array([[0, 0, 1, 1],
+                       [1, 0, 0, 0],
+                       [0, 1, 1, 0],
+                       [1, 1, 0, 0],
+                       [0, 0, 1, 0],
+                       [0, 0, 0, 1]]).astype(np.int64)
+
+    y_pred_1 = np.array([[0.1, 0.2, 0.6, 0.1],
+                         [0.8, 0.05, 0.1, 0.05],
+                         [0.3, 0.4, 0.1, 0.2],
+                         [0.6, 0.25, 0.1, 0.05],
+                         [0.1, 0.2, 0.6, 0.1],
+                         [0.9, 0.0, 0.03, 0.07]]).astype(np.float32)
+
+    base_ap = average_precision_score(y_true, y_pred_1)
+
+    ap_1 = average_precision_score(y_true[0:3, :], y_pred_1[0:3, :], average=None)
+    print(ap_1)
+    print(base_ap)
+
+
 if __name__ == '__main__':
-    test_map_metric()
+    # test_map_metric()
+    test_separate_map()
+
+

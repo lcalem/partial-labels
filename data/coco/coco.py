@@ -28,6 +28,7 @@ class CocoGenerator(Dataset):
             
         self.subset = subset
         self.prop = prop or 100
+        self.nb_classes = NB_CLASSES
 
         self.data_path = data_path
         self.images_path = os.path.join(self.data_path, '%s2014' % self.subset)
@@ -36,6 +37,7 @@ class CocoGenerator(Dataset):
         self.id_to_label = {}
 
         self.load_data()
+        self.image_ids_in_subset = list(self.id_to_label.keys())
 
     def load_data(self):
         if self.subset == 'val':      
@@ -43,7 +45,7 @@ class CocoGenerator(Dataset):
         elif self.subset == 'train':
             dataset_path = os.path.join(self.data_path, 'annotations', 'multilabel_train2014_partial_%s_1.csv' % self.prop)    # TODO: seed
             
-        print('loading dataset from %s' % csv_path)
+        print('loading dataset from %s' % dataset_path)
         with open(dataset_path, 'r') as f_in:
             for line in f_in:
                 parts = line.split(',')
@@ -85,7 +87,7 @@ class CocoGenerator(Dataset):
 
                 for image_id in current_bach:
                     # Load the image and resize it. We get a PIL Image object
-                    img = image.load_img(os.path.join(self.images_path, 'COCO_%s2014_%012d.jpg' % (self.subset, image_id)), grayscale=False, target_size=(IMG_HEIGHT, IMG_WIDTH))
+                    img = image.load_img(os.path.join(self.images_path, 'COCO_%s2014_%012d.jpg' % (self.subset, int(image_id))), grayscale=False, target_size=(IMG_HEIGHT, IMG_WIDTH))
                     # Cast the Image object to a numpy array and put the channel has the last dimension
                     img_arr = image.img_to_array(img, data_format='channels_last')
                     X_batch.append(img_arr)
@@ -102,4 +104,7 @@ class CocoGenerator(Dataset):
                 yield(X_batch, Y_batch)
 
     def __len__(self):
-        return int(len(self.id_to_label) / self.batch_size) + 1
+        '''
+        total number of images
+        '''
+        return len(self.id_to_label)
