@@ -15,7 +15,7 @@ cfg.DEBUG.IS_TEST = False
 # size of images
 cfg.IMAGE = edict()
 cfg.IMAGE.N_CHANNELS = 3
-cfg.IMAGE.IMG_SIZE = 224
+cfg.IMAGE.IMG_SIZE = 448
 
 cfg.DATASET = edict()
 cfg.DATASET.SHUFFLE = True
@@ -27,6 +27,7 @@ cfg.DATAAUGMENTATION.DEFAULT_DICT = {"horizontal_flip": True}
 # defining what callback to use
 cfg.CALLBACK = edict()
 cfg.CALLBACK.LR_FACTOR = 0.1
+cfg.CALLBACK.LR_TRIGGER = [10]
 cfg.CALLBACK.PATIENCE_LR = 2
 cfg.CALLBACK.PATIENCE = 10
 cfg.CALLBACK.MIN_DELTA = 0.0
