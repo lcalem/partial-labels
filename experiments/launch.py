@@ -6,7 +6,7 @@ import yaml
 
 from pprint import pprint
 
-from tensorflow.keras.callbacks import TensorBoard
+from tensorflow.keras.callbacks import TensorBoard, LearningRateScheduler
 
 from config import config_utils
 
@@ -16,13 +16,10 @@ from experiments.data_gen import PascalVOCDataGenerator
 
 from model.callbacks.metric_callbacks import MAPCallback
 from model.callbacks.save_callback import SaveModel
+from model.callbacks.scheduler import lr_scheduler
 from model.networks.baseline import Baseline
 from model.utils.config import cfg
 
-from tensorflow.keras.applications import ResNet50
-from tensorflow.keras import Model, Input
-from tensorflow.keras.optimizers import SGD
-from tensorflow.keras.layers import Dense, Flatten, GlobalAveragePooling2D
 
 ALL_PCT = (10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
 
@@ -193,6 +190,9 @@ class Launcher():
         # Save Model
         cb_list.append(SaveModel(self.exp_folder, prop))
 
+        # Learning rate scheduler
+        cb_list.append(LearningRateScheduler(lr_scheduler))
+
         return cb_list
 
 
@@ -202,6 +202,9 @@ class Launcher():
 # python3 launch.py -o coco_baseline50_sgd -g 1 -p 100
 # python3 launch.py -o coco_baseline50_sgd -g 2 -p 90,70,50,30,10
 # python3 launch.py -o coco_partial50_sgd -g 3 -p 90,70,50,30,10
+# python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 90,70,50,30,10
+# python3 launch.py -o pv_partial50_sgd_448lrs -g 3 -p 90,70,50,30,10
+# python3 launch.py -o coco_baseline50_sgd_448lrs -g 0 -p 100
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
