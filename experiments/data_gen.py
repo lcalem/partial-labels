@@ -6,8 +6,8 @@ from keras.applications.imagenet_utils import preprocess_input
 
 random.seed(2506)
 
-IMG_HEIGHT = 224
-IMG_WIDTH = 224
+IMG_HEIGHT = 448
+IMG_WIDTH = 448
 
 LABELS = ['aeroplane', 'bicycle', 'bird', 'boat',
            'bottle', 'bus', 'car', 'cat', 'chair',
@@ -146,4 +146,3 @@ class PascalVOCDataGenerator(object):
 
     def __len__(self):
         return len(self.id_to_label)
-    
