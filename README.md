@@ -39,7 +39,31 @@ export PYTHONPATH="${PYTHONPATH}:/<repo_root>/partial-labels"
 - `python3 pp_multilabel.py <dataset_root> train`
 - `python3 pp_multilabel.py <dataset_root> val`
 
+2.1.4. Use `data/pascalvoc/preprocessing/partial_datasets.py` to create partial datasets:
+
+`python3 partial_datasets.py <dataset_root>/Annotations`
+
+
 
 #### 2.2. MS COCO
 
-Coming soon<sup>TM</sup>
+2.2.1. Download
+<br/>Make a dataset folder and `cd` in it (it will be called <dataset_root>)
+<br/>Download MSCOCO 2014 dataset
+
+- train images `wget http://images.cocodataset.org/zips/train2014.zip`
+- val images `wget http://images.cocodataset.org/zips/val2014.zip`
+- train+val annotations `wget http://images.cocodataset.org/annotations/annotations_trainval2014.zip`
+
+2.2.2. Unzip everything in place
+
+2.2.3. Preprocess using `data/coco/preprocessing/pp_multilabel.py` to create a single annotation csv (do it once for train and once for val separately):
+- `python3 pp_multilabel.py <dataset_root> train2014`
+- `python3 pp_multilabel.py <dataset_root> val2014`
+
+This operation will create csv complete datasets `<dataset_root>/annotations/multilabel_train2014.csv` and `<dataset_root>/annotations/multilabel_val2014.csv`.
+
+2.2.4. Use `data/coco/preprocessing/partial_datasets.py` to create partial datasets (one with 10% known labels, one with 20% known labels, and so on til 100% known labels which should be identical to `multilabel_train2014.csv`):
+
+`python3 partial_datasets.py <dataset_root>/annotations/multilabel_train2014.csv`
+
