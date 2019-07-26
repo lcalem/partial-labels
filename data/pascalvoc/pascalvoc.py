@@ -26,23 +26,25 @@ class PascalVOC(Dataset):
     def __init__(self,
                  dataset_path,
                  batch_size,
-                 mode,
+                 subset,
                  x_keys,
                  y_keys,
                  p=None):
         '''
         Only multilabel for now
         - dataset_path: folder where VOCdevkit/VOC2007/ is contained
-        - mode: train / val / trainval / test -> file to be loaded
+        - subset: train / val / trainval / test -> file to be loaded
         - p: known labels proportion -> will be used to open the correct partial dataset file (only for training)
 
 
         Note: shuffle is managed in the fit_generator, not at all here
         '''
-        assert mode in ['train', 'val', 'trainval', 'test'], 'Unknown mode %s' % str(mode)
+        assert subset in ['train', 'val', 'trainval', 'test'], 'Unknown subset %s' % str(subset)
 
         self.dataset_path = dataset_path
-        self.mode = mode
+        self.subset = subset
+        self.p = p
+
         self.x_keys = x_keys
         self.y_keys = y_keys
         self.all_keys = set(x_keys + y_keys)
@@ -51,7 +53,7 @@ class PascalVOC(Dataset):
         self.batch_size = batch_size
 
         self.class_info = utils.load_ids()
-        self.n_classes = len(self.class_info)
+        self.nb_classes = len(self.class_info)
         self.img_size = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.N_CHANNELS)
 
         self.samples = defaultdict(dict)
@@ -64,7 +66,7 @@ class PascalVOC(Dataset):
         '''
         Should give off the number of batches
         '''
-        return math.floor(self.n_samples / self.batch_size)
+        return math.floor(self.nb_samples / self.batch_size)
 
     def get_annot_file(self, p):
         if p is not None:
@@ -100,7 +102,7 @@ class PascalVOC(Dataset):
         # we sort it by # sample to make sure it's always the same order
         self.sample_ids = sorted(samples.keys())
         self.samples = {k: samples[k] for k in self.sample_ids}
-        self.n_samples = len(self.samples)
+        self.nb_samples = len(self.samples)
 
     def __getitem__(self, batch_idx):
         '''
@@ -131,8 +133,8 @@ class PascalVOC(Dataset):
 
         for i in range(self.batch_size):
             sample_idx = batch_idx * self.batch_size + i
-            if sample_idx >= self.n_samples:
-                sample_idx -= self.n_samples
+            if sample_idx >= self.nb_samples:
+                sample_idx -= self.nb_samples
 
             data = self.get_data_dict(sample_idx)
             for key in self.all_keys:
@@ -144,7 +146,7 @@ class PascalVOC(Dataset):
         if key == 'image':
             return self.img_size
         elif key == 'multilabel':
-            return (self.n_classes, )
+            return (self.nb_classes, )
         else:
             raise Exception('Unknown key %s' % key)
 
