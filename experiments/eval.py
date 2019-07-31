@@ -1,6 +1,5 @@
 import argparse
 import os
-import sys
 
 from tensorflow.keras import backend as K
 
@@ -54,24 +53,22 @@ def extract_folder_prop_epoch(weights_path):
 
 def main(path, folder, epoch, prop, config):
 
-    config_path = '~/partial-labels/config/%s.yaml' % config
-    data_dir = '~/datasets/mscoco'
+    config_path = '%s/partial-labels/config/%s.yaml' % (os.environ['HOME'], config)
+    data_dir = '%s/datasets/mscoco' % os.environ['HOME']
 
     map_fn = metrics.MAP()
 
     # load val dataset (/!\ LONG)
     dataset_test = CocoGenerator('val', data_dir)
-    batch_size = len(dataset_test)
-    generator_test = dataset_test.flow(batch_size=batch_size)
     print("test data length %s" % len(dataset_test))
-    X_test, Y_test = next(generator_test)
+    X_test, Y_test = dataset_test.load_test()
 
     # eval for every weigths path
     for weights_path in get_weights_paths(path, folder, epoch, prop):
         exp_folder, prop, epoch = extract_folder_prop_epoch(weights_path)
 
         # load model
-        model = Baseline('~/partial_experiments/', 80)
+        model = Baseline('%s/partial_experiments/' % os.environ['HOME'], 80)
         model.load_weights(weights_path, build_args={'p': prop / 100}, config_file=config_path)
 
         # execute mAP measures

@@ -103,6 +103,33 @@ class CocoGenerator(Dataset):
                 X_batch = preprocess_input(X_batch, data_format='channels_last')
                 yield(X_batch, Y_batch)
 
+    def load_test(self):
+        X_batch = []
+        Y_batch = []
+        count = 0
+
+        for image_id in self.id_to_label:
+            if count % 1000 == 0:
+                print("loaded %s images" % count)
+            count += 1
+
+            # Load the image and resize it. We get a PIL Image object
+            img = image.load_img(os.path.join(self.images_path, 'COCO_%s2014_%012d.jpg' % (self.subset, int(image_id))), grayscale=False, target_size=(cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE))
+            # Cast the Image object to a numpy array and put the channel has the last dimension
+            img_arr = image.img_to_array(img, data_format='channels_last')
+            X_batch.append(img_arr)
+            # Y_batch.append(self.id_to_label[image_id])
+            Y_batch.append(self.get_labels(image_id))
+
+        # resize X_batch in (batch_size, IMG_HEIGHT, IMG_WIDTH, 3)
+        X_batch = np.reshape(X_batch, (-1, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, 3))
+        # resize Y_batch in (None, nb_classes)
+        Y_batch = np.reshape(Y_batch, (-1, self.nb_classes))
+
+        # substract mean values from imagenet
+        X_batch = preprocess_input(X_batch, data_format='channels_last')
+        return (X_batch, Y_batch)
+
     def __len__(self):
         '''
         total number of images
