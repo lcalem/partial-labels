@@ -3,7 +3,7 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.optimizers import RMSprop, Adam, SGD
 
 from model.utils import log
-from model.utils.config import cfg
+from config.config import cfg
 
 from experiments.launch import parse_options_file
 from config import config_utils

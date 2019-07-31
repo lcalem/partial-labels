@@ -11,7 +11,7 @@ from collections import defaultdict
 
 from data import Dataset
 
-from model.utils.config import cfg
+from config.config import cfg
 
 NB_CLASSES = 80
 
@@ -87,7 +87,7 @@ class CocoGenerator(Dataset):
 
                 for image_id in current_bach:
                     # Load the image and resize it. We get a PIL Image object
-                    img = image.load_img(os.path.join(self.images_path, 'COCO_%s2014_%012d.jpg' % (self.subset, int(image_id))), grayscale=False, target_size=(IMG_HEIGHT, IMG_WIDTH))
+                    img = image.load_img(os.path.join(self.images_path, 'COCO_%s2014_%012d.jpg' % (self.subset, int(image_id))), grayscale=False, target_size=(cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE))
                     # Cast the Image object to a numpy array and put the channel has the last dimension
                     img_arr = image.img_to_array(img, data_format='channels_last')
                     X_batch.append(img_arr)

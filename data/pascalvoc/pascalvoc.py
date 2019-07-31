@@ -14,7 +14,7 @@ from PIL import Image
 from data import Dataset
 from data.pascalvoc.preprocessing import utils
 
-from model.utils.config import cfg
+from config.config import cfg
 
 NB_CLASSES = 20
 

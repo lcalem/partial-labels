@@ -5,14 +5,14 @@ import sys
 import numpy as np
 
 from data.coco.coco import NB_CLASSES
-from model.utils.config import cfg
+from config.config import cfg
 
 
 def partal_datasets(annotations_path):
     '''
     will create partial datasets from the train dataset with keeping X% of labels
     X in [10, 20 ... 100] (10 = 90% of the labels are removed, 100 = original dataset)
-    
+
     not exactly the same as the pascalvoc preprocessing (-1 / 0 in the original file)
     TODO: harmonize the 2
     '''

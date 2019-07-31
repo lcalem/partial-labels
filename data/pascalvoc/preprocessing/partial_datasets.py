@@ -5,7 +5,7 @@ import sys
 import numpy as np
 
 from data.pascalvoc.pascalvoc import NB_CLASSES
-from model.utils.config import cfg
+from config.config import cfg
 
 
 def partal_datasets(annotations_path):
