@@ -11,8 +11,8 @@ from collections import defaultdict
 
 from data import Dataset
 
-IMG_HEIGHT = 224
-IMG_WIDTH = 224
+from model.utils.config import cfg
+
 NB_CLASSES = 80
 
 
@@ -25,7 +25,7 @@ class CocoGenerator(Dataset):
         assert subset in ['train', 'val']
         if prop is not None and subset != 'train':
             raise Exception('prop only for training')
-            
+
         self.subset = subset
         self.prop = prop or 100
         self.nb_classes = NB_CLASSES
@@ -40,11 +40,11 @@ class CocoGenerator(Dataset):
         self.image_ids_in_subset = list(self.id_to_label.keys())
 
     def load_data(self):
-        if self.subset == 'val':      
+        if self.subset == 'val':
             dataset_path = os.path.join(self.data_path, 'annotations', 'multilabel_val2014.csv')
         elif self.subset == 'train':
             dataset_path = os.path.join(self.data_path, 'annotations', 'multilabel_train2014_partial_%s_1.csv' % self.prop)    # TODO: seed
-            
+
         print('loading dataset from %s' % dataset_path)
         with open(dataset_path, 'r') as f_in:
             for line in f_in:
@@ -95,7 +95,7 @@ class CocoGenerator(Dataset):
                     Y_batch.append(self.get_labels(image_id))
 
                 # resize X_batch in (batch_size, IMG_HEIGHT, IMG_WIDTH, 3)
-                X_batch = np.reshape(X_batch, (-1, IMG_HEIGHT, IMG_WIDTH, 3))
+                X_batch = np.reshape(X_batch, (-1, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, 3))
                 # resize Y_batch in (None, nb_classes)
                 Y_batch = np.reshape(Y_batch, (-1, self.nb_classes))
 
