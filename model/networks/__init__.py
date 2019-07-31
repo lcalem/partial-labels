@@ -5,7 +5,7 @@ from tensorflow.keras.optimizers import RMSprop, Adam, SGD
 from model.utils import log
 from config.config import cfg
 
-from experiments.launch import parse_options_file
+from experiments.launch_utils import parse_options_file
 from config import config_utils
 
 

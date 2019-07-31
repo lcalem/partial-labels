@@ -7,12 +7,14 @@ import yaml
 from pprint import pprint
 
 from tensorflow.keras.callbacks import TensorBoard, LearningRateScheduler
+from tensorflow.keras import backend as K
 
 from config import config_utils
 
 from data.pascalvoc.pascalvoc import PascalVOC
 from data.coco.coco import CocoGenerator
 from experiments.data_gen import PascalVOCDataGenerator
+from experiments import launch_utils as utils
 
 from model.callbacks.metric_callbacks import MAPCallback
 from model.callbacks.save_callback import SaveModel
@@ -22,64 +24,6 @@ from config.config import cfg
 
 
 ALL_PCT = (10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
-
-
-def parse_options_file(filepath):
-    '''
-    - load options
-    - checks options
-
-    TODO: the check part
-    '''
-
-    # add the .yaml part if needed
-    if not filepath.endswith('.yaml'):
-        filepath = filepath + '.yaml'
-
-    # not an absolute path -> try to find it in the configs/ folder
-    if not filepath.startswith('/'):
-        filepath = '../config/%s' % filepath
-        if not os.path.isfile(filepath):
-            raise Exception('config file %s not found' % filepath)
-
-    with open(filepath, 'r') as f_in:
-        config = yaml.safe_load(f_in)
-
-    print('\n========================')
-    print('Loaded config\n')
-    pprint(config)
-    print('========================\n')
-
-    return config
-
-
-def exp_init(exps_folder=None, exp_name=None):
-    '''
-    common actions for setuping an experiment:
-    - create experiment folder
-    - dump config in it
-    - dump current model code in it (because for now we only save weights)
-    '''
-    if exps_folder is None:
-        exps_folder = os.path.join(os.environ['HOME'], 'partial_experiments')
-
-    # model folder
-    name_suffix = ('_%s' % exp_name) if exp_name else ''
-    model_folder = '%s/exp_%s_%s%s' % (exps_folder, datetime.datetime.now().strftime("%Y%m%d_%H%M"), cfg.ARCHI.NAME, name_suffix)
-    os.makedirs(model_folder)
-    print("Conducting experiment for %s epochs in folder %s" % (cfg.TRAINING.N_EPOCHS, model_folder))
-
-    # config
-    config_path = os.path.join(model_folder, 'config.yaml')
-    with open(config_path, 'w+') as f_conf:
-        yaml.dump(cfg, f_conf, default_flow_style=False)
-
-    # model
-    src_folder = os.path.dirname(os.path.realpath(__file__)) + '/..'
-    dst_folder = os.path.join(model_folder, 'model_src/')
-    shutil.copytree(src_folder, dst_folder)
-
-    return model_folder
 
 
 class Launcher():
@@ -132,6 +76,10 @@ class Launcher():
         self.build_model(self.dataset_train.nb_classes, p)
         steps_per_epoch = int(len(self.dataset_train.id_to_label) / cfg.BATCH_SIZE) + 1
         self.model.train(self.dataset_train.flow(batch_size=cfg.BATCH_SIZE), steps_per_epoch=steps_per_epoch, cb_list=cb_list)
+
+        # cleaning (to release memory before next launch)
+        K.clear_session()
+        del self.model
 
     def load_dataset(self, mode, y_keys, percentage=None):
         '''
@@ -213,11 +161,11 @@ if __name__ == '__main__':
     parser.add_argument('--exp_name', '-n', help='optional experiment name')
 
     args = parser.parse_args()
-    options = parse_options_file(args.options)
+    options = utils.parse_options_file(args.options)
 
     config_utils.update_config(options)
 
-    exp_folder = exp_init(args.exp_name)
+    exp_folder = utils.exp_init(args.exp_name)
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
