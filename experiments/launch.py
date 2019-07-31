@@ -18,7 +18,7 @@ from model.callbacks.metric_callbacks import MAPCallback
 from model.callbacks.save_callback import SaveModel
 from model.callbacks.scheduler import lr_scheduler
 from model.networks.baseline import Baseline
-from model.utils.config import cfg
+from config.config import cfg
 
 
 ALL_PCT = (10, 20, 30, 40, 50, 60, 70, 80, 90, 100)

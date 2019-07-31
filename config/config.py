@@ -27,7 +27,7 @@ cfg.DATAAUGMENTATION.DEFAULT_DICT = {"horizontal_flip": True}
 # defining what callback to use
 cfg.CALLBACK = edict()
 cfg.CALLBACK.LR_FACTOR = 0.1
-cfg.CALLBACK.LR_TRIGGER = [10]
+cfg.CALLBACK.LR_TRIGGER = []
 cfg.CALLBACK.PATIENCE_LR = 2
 cfg.CALLBACK.PATIENCE = 10
 cfg.CALLBACK.MIN_DELTA = 0.0

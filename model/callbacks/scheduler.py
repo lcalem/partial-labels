@@ -1,5 +1,5 @@
 from model.utils import log
-from model.utils.config import cfg
+from config.config import cfg
 
 
 def lr_scheduler(epoch, lr):

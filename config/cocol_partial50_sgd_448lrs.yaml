@@ -1,0 +1,20 @@
+archi:
+    name: baseline
+    classifier: resnet50
+    loss: partialbce
+dataset:
+    name: coco
+    path: ~/datasets/mscoco/
+    train: train
+    test: val
+image:
+    img_size: 448
+batch_size: 16
+callbacks:
+    lr_factor: 0.1
+    lr_trigger:
+        - 10
+training:
+    n_epochs: 20
+    optimizer: sgd
+    start_lr: 0.01

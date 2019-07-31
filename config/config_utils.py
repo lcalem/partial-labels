@@ -2,7 +2,7 @@ import collections
 
 from easydict import EasyDict as edict
 
-from model.utils.config import cfg
+from config.config import cfg
 
 
 def dict_recursive_update(d_src, d_update):

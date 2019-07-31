@@ -20,7 +20,7 @@ from model.losses import get_loss
 from model.metrics import MAP
 from model.networks import BaseModel
 
-from model.utils.config import cfg
+from config.config import cfg
 
 
 class Baseline(BaseModel):
