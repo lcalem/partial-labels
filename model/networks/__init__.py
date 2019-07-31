@@ -5,6 +5,9 @@ from tensorflow.keras.optimizers import RMSprop, Adam, SGD
 from model.utils import log
 from model.utils.config import cfg
 
+from experiments.launch import parse_options_file
+from config import config_utils
+
 
 class BaseModel(object):
     '''
@@ -26,8 +29,16 @@ class BaseModel(object):
     def load(self, checkpoint_path, custom_objects=None):
         self.model = load_model(checkpoint_path, custom_objects=custom_objects)
 
-    def load_weights(self, weights_path, by_name=False):
-        self.build()
+    def load_weights(self, weights_path, by_name=False, build_args=None, config_file=None):
+        if build_args is None:
+            build_args = dict()
+
+        if config_file:
+            print("Loading options")
+            options = parse_options_file(config_file)
+            config_utils.update_config(options)
+
+        self.build(**build_args)
         self.model.load_weights(weights_path, by_name=by_name)
 
     def build(self):
@@ -40,12 +51,14 @@ class BaseModel(object):
             'steps_per_epoch': steps_per_epoch,
             'epochs': cfg.TRAINING.N_EPOCHS,
             'callbacks': cb_list,
-            'use_multiprocessing': cfg.MULTIP.USE_MULTIPROCESS,
-            'max_queue_size': cfg.MULTIP.MAX_QUEUE_SIZE,
-            'workers': cfg.MULTIP.N_WORKERS,
             'shuffle': cfg.DATASET.SHUFFLE,
             'initial_epoch': 0
         }
+
+        if cfg.MULTIP.USE_MULTIPROCESS:
+            kwargs['use_multiprocessing'] = cfg.MULTIP.USE_MULTIPROCESS
+            kwargs['max_queue_size'] = cfg.MULTIP.MAX_QUEUE_SIZE
+            kwargs['workers'] = cfg.MULTIP.N_WORKERS
 
         if dataset_val:
             kwargs['validation_data'] = dataset_val
