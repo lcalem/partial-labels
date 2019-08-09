@@ -5,6 +5,8 @@ import yaml
 
 from config.config import cfg
 
+from pprint import pprint
+
 
 def parse_options_file(filepath):
     '''
