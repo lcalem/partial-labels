@@ -18,20 +18,22 @@ NB_CLASSES = 80
 
 class CocoGenerator(Dataset):
 
-    def __init__(self, subset, data_path, prop=None):
+    def __init__(self, subset, data_path, year='2014', prop=None):
         '''
         data path is base dir: /share/DEEPLEARNING/datasets/mscoco
         '''
+        assert year in ['2014', '2017']
         assert subset in ['train', 'val']
         if prop is not None and subset != 'train':
             raise Exception('prop only for training')
 
         self.subset = subset
+        self.year = year
         self.prop = prop or 100
         self.nb_classes = NB_CLASSES
 
         self.data_path = data_path
-        self.images_path = os.path.join(self.data_path, '%s2014' % self.subset)
+        self.images_path = os.path.join(self.data_path, '%s%s' % (self.subset, self.year))
 
         # key: image id // value: image label as one-hot
         self.id_to_label = {}
@@ -41,9 +43,9 @@ class CocoGenerator(Dataset):
 
     def load_data(self):
         if self.subset == 'val':
-            dataset_path = os.path.join(self.data_path, 'annotations', 'multilabel_val2014.csv')
+            dataset_path = os.path.join(self.data_path, 'annotations', 'multilabel_val%s.csv' % self.year)
         elif self.subset == 'train':
-            dataset_path = os.path.join(self.data_path, 'annotations', 'multilabel_train2014_partial_%s_1.csv' % self.prop)    # TODO: seed
+            dataset_path = os.path.join(self.data_path, 'annotations', 'multilabel_train%s_partial_%s_1.csv' % (self.year, self.prop))    # TODO: seed
 
         print('loading dataset from %s' % dataset_path)
         with open(dataset_path, 'r') as f_in:
@@ -67,6 +69,12 @@ class CocoGenerator(Dataset):
             labels = [0 if l == -1 else l for l in labels]
 
         return labels
+    
+    def get_img_path(self, img_id):
+        prefix = ''
+        if self.year == '2014':
+            prefix = 'COCO_%s%s_' % (self.subset, self.year)
+        return os.path.join(self.images_path, '%s%012d.jpg' % (prefix, int(img_id)))
 
     def flow(self, batch_size=32):
         """
@@ -87,7 +95,7 @@ class CocoGenerator(Dataset):
 
                 for image_id in current_bach:
                     # Load the image and resize it. We get a PIL Image object
-                    img = image.load_img(os.path.join(self.images_path, 'COCO_%s2014_%012d.jpg' % (self.subset, int(image_id))), grayscale=False, target_size=(cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE))
+                    img = image.load_img(self.get_img_path(int(image_id)), grayscale=False, target_size=(cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE))
                     # Cast the Image object to a numpy array and put the channel has the last dimension
                     img_arr = image.img_to_array(img, data_format='channels_last')
                     X_batch.append(img_arr)
@@ -114,7 +122,7 @@ class CocoGenerator(Dataset):
             count += 1
 
             # Load the image and resize it. We get a PIL Image object
-            img = image.load_img(os.path.join(self.images_path, 'COCO_%s2014_%012d.jpg' % (self.subset, int(image_id))), grayscale=False, target_size=(cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE))
+            img = image.load_img(self.get_img_path(int(image_id)), grayscale=False, target_size=(cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE))
             # Cast the Image object to a numpy array and put the channel has the last dimension
             img_arr = image.img_to_array(img, data_format='channels_last')
             X_batch.append(img_arr)

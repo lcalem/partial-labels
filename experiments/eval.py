@@ -42,7 +42,7 @@ def get_weights_paths(path, folder, epoch, prop):
 
 def extract_folder_prop_epoch(weights_path):
     parts = weights_path.split('/')
-    parts_name = parts[-1].split('_')
+    parts_name = parts[-1].split('.')[0].split('_')
     assert len(parts_name) == 3
     prop = int(parts_name[1])
     epoch = int(parts_name[2])
@@ -59,7 +59,7 @@ def main(path, folder, epoch, prop, config):
     map_fn = metrics.MAP()
 
     # load val dataset (/!\ LONG)
-    dataset_test = CocoGenerator('val', data_dir)
+    dataset_test = CocoGenerator('val', data_dir, year='2017')
     print("test data length %s" % len(dataset_test))
     X_test, Y_test = dataset_test.load_test()
 
