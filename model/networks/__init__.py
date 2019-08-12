@@ -13,14 +13,6 @@ class BaseModel(object):
     '''
     Base class for different models
     '''
-    def __init__(self, exp_folder, n_classes):
-        self.exp_folder = exp_folder
-
-        self.n_classes = n_classes
-        self.input_shape = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.N_CHANNELS)
-        self.verbose = cfg.VERBOSE
-
-        print("Init input_shape %s" % str(self.input_shape))
 
     def log(self, msg):
         if self.verbose:
@@ -29,17 +21,17 @@ class BaseModel(object):
     def load(self, checkpoint_path, custom_objects=None):
         self.model = load_model(checkpoint_path, custom_objects=custom_objects)
 
-    def load_weights(self, weights_path, by_name=False, build_args=None, config_file=None):
-        if build_args is None:
-            build_args = dict()
-
+    def load_weights(self, weights_path, by_name=False, config_file=None):
         if config_file:
-            print("Loading options")
-            options = parse_options_file(config_file)
-            config_utils.update_config(options)
+            self.load_config(config_file)
 
-        self.build(**build_args)
+        self.build()
         self.model.load_weights(weights_path, by_name=by_name)
+
+    def load_config(self, config_file):
+        print("Loading options")
+        options = parse_options_file(config_file)
+        config_utils.update_config(options)
 
     def build(self):
         raise NotImplementedError

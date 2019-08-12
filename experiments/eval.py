@@ -68,8 +68,8 @@ def main(path, folder, epoch, prop, config):
         exp_folder, prop, epoch = extract_folder_prop_epoch(weights_path)
 
         # load model
-        model = Baseline('%s/partial_experiments/' % os.environ['HOME'], 80)
-        model.load_weights(weights_path, build_args={'p': prop / 100}, config_file=config_path)
+        model = Baseline('%s/partial_experiments/' % os.environ['HOME'], 80, prop)
+        model.load_weights(weights_path, config_file=config_path)
 
         # execute mAP measures
         y_pred = model.predict(X_test)
