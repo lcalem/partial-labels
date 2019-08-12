@@ -25,10 +25,27 @@ from config.config import cfg
 
 class Baseline(BaseModel):
 
-    def build(self, p):
+    def __init__(self, exp_folder, n_classes, p=1):
         '''
-        that p here is really ugly
+        p is the proportion of known labels
         '''
+        if p > 1.0:
+            p = p / 100
+
+        self.exp_folder = exp_folder
+
+        self.p = p
+        self.n_classes = n_classes
+        self.input_shape = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.N_CHANNELS)
+        self.verbose = cfg.VERBOSE
+
+        print("Init input_shape %s" % str(self.input_shape))
+
+    def build(self):
+        '''
+        TODO: that p here is really ugly
+        '''
+
         self.build_classifier()
 
         inp = Input(shape=self.input_shape, name='image_input')
@@ -44,7 +61,7 @@ class Baseline(BaseModel):
         self.log('Outputs shape %s' % str(self.model.output_shape))
 
         optimizer = self.build_optimizer()
-        loss = get_loss(cfg.ARCHI.LOSS, params={'prop': p})
+        loss = get_loss(cfg.ARCHI.LOSS, params={'prop': self.p})
         self.model.compile(loss=loss, optimizer=optimizer, metrics=['binary_accuracy'])
 
         if self.verbose:
@@ -58,7 +75,3 @@ class Baseline(BaseModel):
             resnet = ResNet50(include_top=False, weights='imagenet', input_shape=self.input_shape)
 
         self.cls_model = Model(inputs=resnet.inputs, outputs=resnet.output, name='cls_model')
-
-        # if self.verbose:
-        #     self.log('Classifier model')
-        #     self.cls_model.summary()

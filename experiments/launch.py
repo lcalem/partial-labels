@@ -104,17 +104,18 @@ class Launcher():
         '''
         print("building model")
         if cfg.ARCHI.NAME == 'baseline':
-            self.model = Baseline(self.exp_folder, n_classes)
+            self.model = Baseline(self.exp_folder, n_classes, p)
 
-        self.model.build(p / 100)
+        self.model.build()
 
     def build_callbacks(self, prop):
         '''
         prop = proportion of known labels of current run
 
         TensorBoard
-        SaveModel
         MAPCallback
+        SaveModel
+        LearningRateScheduler
         '''
         print("building callbacks")
         cb_list = list()
