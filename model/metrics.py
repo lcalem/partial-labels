@@ -3,6 +3,8 @@ import tensorflow as tf
 
 from sklearn import metrics
 
+import numpy as np
+
 
 class BaseMetric(object):
 
@@ -32,6 +34,6 @@ class MAP(BaseMetric):
         '''
         computes the AP for each class and returns it as is
         '''
-        print('type true %s, type pred %s' % (type(y_true), type(y_pred)))
-        return metrics.average_precision_score(y_true, y_pred, average=None)
+        # print('type true %s (%s), type pred %s (%s)' % (type(y_true), np.array(y_true).shape, type(y_pred), y_pred.shape))
+        return metrics.average_precision_score(y_true[0], y_pred, average=None)
 

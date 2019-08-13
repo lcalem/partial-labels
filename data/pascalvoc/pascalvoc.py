@@ -69,7 +69,7 @@ class PascalVOC(Dataset):
         '''
         Should give off the number of batches
         '''
-        return math.floor(self.nb_samples / self.batch_size)
+        return math.ceil(self.nb_samples / self.batch_size)
 
     def get_annot_file(self, p):
         if p is not None:
@@ -161,8 +161,24 @@ class PascalVOC(Dataset):
         output = {}
         sample_ids = [self.sample_ids[i] for i in sample_idxs]
 
-        output['image'] = self.get_images(sample_ids)
-        output['multilabel'] = [self.samples[i]['multilabel'] for i in sample_ids]
+        img_batch = []
+        target_batch = []
+
+        for img_id in sample_ids:
+            img_path = os.path.join(self.dataset_path, 'JPEGImages/%s.jpg' % img_id)
+            img = image.load_img(img_path, grayscale=False, target_size=(self.img_size[0], self.img_size[1]))
+            img_arr = image.img_to_array(img, data_format='channels_last')
+            img_batch.append(img_arr)
+
+            target_batch.append(self.get_labels(img_id))
+
+        img_batch = np.reshape(img_batch, (-1, self.img_size[0], self.img_size[1], 3))  # TODO: figure out why this line is necessary
+        img_batch = preprocess_input(img_batch, data_format='channels_last')
+
+        target_batch = np.reshape(target_batch, (-1, self.nb_classes))
+
+        output['image'] = img_batch
+        output['multilabel'] = target_batch
 
         return output
 
@@ -175,20 +191,15 @@ class PascalVOC(Dataset):
         '''
         return np.where(np.equal(multilabel_truth, -1), np.zeros_like(multilabel_truth), multilabel_truth).tolist()
 
-    def get_images(self, img_ids):
+    def get_labels(self, image_id):
         '''
-        open the image with given id (like 000131)
-        TODO: we want it to fail if an image is not found, but we should make it fail gracefully
+        for tests
+        negative labels:
+        -1 for train
+        0 for test or val
         '''
-        img_batch = []
+        labels = self.samples[image_id]['multilabel']
+        if self.mode in ['val', 'test']:
+            labels = [0 if l == -1 else l for l in labels]
 
-        for img_id in img_ids:
-            img_path = os.path.join(self.dataset_path, 'JPEGImages/%s.jpg' % img_id)
-            img = image.load_img(img_path, grayscale=False, target_size=(self.img_size[0], self.img_size[1]))
-            img_arr = image.img_to_array(img, data_format='channels_last')
-            print(img_arr.shape)
-            img_batch.append(img_arr)
-
-        img_batch = np.reshape(img_batch, (-1, self.img_size[0], self.img_size[1], 3))
-        img_batch = preprocess_input(img_batch, data_format='channels_last')
-        return img_batch
+        return labels
