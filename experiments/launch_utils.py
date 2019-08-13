@@ -21,10 +21,13 @@ def parse_options_file(filepath):
         filepath = filepath + '.yaml'
 
     # not an absolute path -> try to find it in the configs/ folder
+    # TODO: this is a tad too ugly
     if not filepath.startswith('/'):
         filepath = '../config/%s' % filepath
         if not os.path.isfile(filepath):
-            raise Exception('config file %s not found' % filepath)
+            filepath = '%s/partial-labels/config/%s' % (os.environ['HOME'], filepath)
+            if not os.path.isfile(filepath):
+                raise Exception('config file %s not found' % filepath)
 
     with open(filepath, 'r') as f_in:
         config = yaml.safe_load(f_in)
