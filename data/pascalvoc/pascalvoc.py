@@ -9,6 +9,9 @@ from collections import defaultdict
 import numpy as np
 import tensorflow as tf
 
+from keras.preprocessing import image
+from keras.applications.imagenet_utils import preprocess_input
+
 from PIL import Image
 
 from data import Dataset
@@ -26,23 +29,23 @@ class PascalVOC(Dataset):
     def __init__(self,
                  dataset_path,
                  batch_size,
-                 subset,
+                 mode,
                  x_keys,
                  y_keys,
                  p=None):
         '''
         Only multilabel for now
         - dataset_path: folder where VOCdevkit/VOC2007/ is contained
-        - subset: train / val / trainval / test -> file to be loaded
+        - mode: train / val / trainval / test -> file to be loaded
         - p: known labels proportion -> will be used to open the correct partial dataset file (only for training)
 
 
         Note: shuffle is managed in the fit_generator, not at all here
         '''
-        assert subset in ['train', 'val', 'trainval', 'test'], 'Unknown subset %s' % str(subset)
+        assert mode in ['train', 'val', 'trainval', 'test'], 'Unknown subset %s' % str(mode)
 
         self.dataset_path = dataset_path
-        self.subset = subset
+        self.mode = mode
         self.p = p
 
         self.x_keys = x_keys
@@ -75,7 +78,7 @@ class PascalVOC(Dataset):
         else:
             name = self.mode
 
-        return os.path.join(self.dataset_path, 'VOCdevkit/VOC2007/Annotations/annotations_multilabel_%s.csv' % name)
+        return os.path.join(self.dataset_path, 'Annotations/annotations_multilabel_%s.csv' % name)
 
     def load_annotations(self, annotations_path):
         '''
@@ -131,14 +134,18 @@ class PascalVOC(Dataset):
         for key in self.all_keys:
             data_dict[key] = np.empty((self.batch_size,) + self.get_key_shape(key))
 
+        # get ids to load
+        batch_idxs = list()
         for i in range(self.batch_size):
             sample_idx = batch_idx * self.batch_size + i
             if sample_idx >= self.nb_samples:
                 sample_idx -= self.nb_samples
+            batch_idxs.append(sample_idx)
 
-            data = self.get_data_dict(sample_idx)
-            for key in self.all_keys:
-                data_dict[key][i, :] = data[key]
+        # get data
+        data = self.get_data_dict(batch_idxs)
+        for key in self.all_keys:
+            data_dict[key] = data[key]
 
         return data_dict
 
@@ -150,12 +157,12 @@ class PascalVOC(Dataset):
         else:
             raise Exception('Unknown key %s' % key)
 
-    def get_data_dict(self, sample_idx):
+    def get_data_dict(self, sample_idxs):
         output = {}
-        sample_id = self.sample_ids[sample_idx]
+        sample_ids = [self.sample_ids[i] for i in sample_idxs]
 
-        output['image'] = self.get_image(sample_id)
-        output['multilabel'] = self.samples[sample_id]['multilabel']
+        output['image'] = self.get_images(sample_ids)
+        output['multilabel'] = [self.samples[i]['multilabel'] for i in sample_ids]
 
         return output
 
@@ -168,11 +175,20 @@ class PascalVOC(Dataset):
         '''
         return np.where(np.equal(multilabel_truth, -1), np.zeros_like(multilabel_truth), multilabel_truth).tolist()
 
-    def get_image(self, img_id):
+    def get_images(self, img_ids):
         '''
         open the image with given id (like 000131)
         TODO: we want it to fail if an image is not found, but we should make it fail gracefully
         '''
-        image_path = os.path.join(self.dataset_path, 'VOCdevkit/VOC2007/JPEGImages/%s.jpg' % img_id)
-        img = Image.open(image_path)
-        img = img.resize((self.img_size[0], self.img_size[1]), Image.BILINEAR)
+        img_batch = []
+
+        for img_id in img_ids:
+            img_path = os.path.join(self.dataset_path, 'JPEGImages/%s.jpg' % img_id)
+            img = image.load_img(img_path, grayscale=False, target_size=(self.img_size[0], self.img_size[1]))
+            img_arr = image.img_to_array(img, data_format='channels_last')
+            print(img_arr.shape)
+            img_batch.append(img_arr)
+
+        img_batch = np.reshape(img_batch, (-1, self.img_size[0], self.img_size[1], 3))
+        img_batch = preprocess_input(img_batch, data_format='channels_last')
+        return img_batch
