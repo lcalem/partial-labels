@@ -11,9 +11,10 @@ from tensorflow.keras import backend as K
 
 from config import config_utils
 
+
+from data.pascalvoc.data_gen import PascalVOCDataGenerator
 from data.pascalvoc.pascalvoc import PascalVOC
 from data.coco.coco import CocoGenerator
-from experiments.data_gen import PascalVOCDataGenerator
 from experiments import launch_utils as utils
 
 from model.callbacks.metric_callbacks import MAPCallback
@@ -66,32 +67,35 @@ class Launcher():
         5. train
         '''
 
-        self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, y_keys=['multilabel'], percentage=p)
-        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, y_keys=['multilabel'])
+        self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE, p=p)
+        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, y_keys=['multilabel'], batch_size=4952)
 
         # callbacks
         cb_list = self.build_callbacks(p)
 
         # model
         self.build_model(self.dataset_train.nb_classes, p)
-        steps_per_epoch = int(len(self.dataset_train.id_to_label) / cfg.BATCH_SIZE) + 1
-        self.model.train(self.dataset_train.flow(batch_size=cfg.BATCH_SIZE), steps_per_epoch=steps_per_epoch, cb_list=cb_list)
+
+        steps_per_epoch = len(self.dataset_train)
+        self.model.train(self.dataset_train, steps_per_epoch=steps_per_epoch, cb_list=cb_list)
+        # steps_per_epoch = int(len(self.dataset_train.id_to_label) / cfg.BATCH_SIZE) + 1
+        # self.model.train(self.dataset_train.flow(batch_size=cfg.BATCH_SIZE), steps_per_epoch=steps_per_epoch, cb_list=cb_list)
 
         # cleaning (to release memory before next launch)
         K.clear_session()
         del self.model
 
-    def load_dataset(self, mode, y_keys, percentage=None):
+    def load_dataset(self, mode, y_keys, batch_size, p=None):
         '''
         we keep an ugly switch for now
         TODO: better dataset mode management
         '''
         if cfg.DATASET.NAME == 'pascalvoc':
-            dataset = PascalVOCDataGenerator(mode, self.data_dir, prop=percentage)
+            # dataset = PascalVOCDataGenerator(mode, self.data_dir, prop=percentage)
 
-            # dataset = PascalVOC(cfg.DATASET.PATH, batch_size, mode, x_keys=['image'], y_keys=y_keys, p=percentage)
+            dataset = PascalVOC(self.data_dir, batch_size, mode, x_keys=['image'], y_keys=y_keys, p=p)
         elif cfg.DATASET.NAME == 'coco':
-            dataset = CocoGenerator(mode, self.data_dir, prop=percentage)
+            dataset = CocoGenerator(mode, self.data_dir, prop=p)
         else:
             raise Exception('Unknown dataset %s' % cfg.DATASET.NAME)
 
@@ -100,7 +104,6 @@ class Launcher():
     def build_model(self, n_classes, p):
         '''
         TODO: we keep an ugly switch for now, do a more elegant importlib base loader after
-        TODO: that percentage omg
         '''
         print("building model")
         if cfg.ARCHI.NAME == 'baseline':
@@ -126,13 +129,15 @@ class Launcher():
         tensorboard = TensorBoard(log_dir=os.path.join(logs_folder, 'tensorboard'))
         cb_list.append(tensorboard)
 
-        # MAP
-        batch_size = len(self.dataset_test)
-        generator_test = self.dataset_test.flow(batch_size=batch_size)
-        print("test data length %s" % len(self.dataset_test))
-        X_test, Y_test = next(generator_test)
+        # MAP (old dataset way)
+        # batch_size = len(self.dataset_test)
+        # generator_test = self.dataset_test.flow(batch_size=batch_size)
+        # print("test data length %s" % len(self.dataset_test))
+        # X_test, Y_test = next(generator_test)
 
-        # x_val, y_val = self.dataset_test[0]
+        # MAP (new dataset way)
+        X_test, Y_test = self.dataset_test[0]
+
         map_cb = MAPCallback(X_test, Y_test, self.exp_folder, prop)
         cb_list.append(map_cb)
 
@@ -145,12 +150,7 @@ class Launcher():
         return cb_list
 
 
-# python3 launch.py -o pv_baseline50_sgd -g 1 -p 100
-# python3 launch.py -o pv_baseline50_sgd -g 2 -p 10,30,50,70,90
-# python3 launch.py -o pv_partial50_sgd -g 2 -p 10
-# python3 launch.py -o coco_baseline50_sgd -g 1 -p 100
-# python3 launch.py -o coco_baseline50_sgd -g 2 -p 90,70,50,30,10
-# python3 launch.py -o coco_partial50_sgd -g 3 -p 90,70,50,30,10
+# python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 100
 # python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 90,70,50,30,10
 # python3 launch.py -o pv_partial50_sgd_448lrs -g 3 -p 90,70,50,30,10
 # python3 launch.py -o coco_baseline50_sgd_448lrs -g 0 -p 100
