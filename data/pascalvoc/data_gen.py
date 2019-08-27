@@ -1,3 +1,4 @@
+"""
 import os
 import random
 import numpy as np
@@ -94,9 +95,10 @@ class PascalVOCDataGenerator(object):
                         self.id_to_label[image_id][i] = 1
 
     def _get_images_ids_from_subset(self, subset):
-        """_get_images_ids_from_subset
+        '''
+        _get_images_ids_from_subset
         The images' ids are found in the <subset>.txt file in ImageSets/Main
-        """
+        '''
         with open(os.path.join(self.labels_path, subset + '.txt'), 'r') as f:
             images_ids = f.read().splitlines()
         return images_ids
@@ -146,3 +148,5 @@ class PascalVOCDataGenerator(object):
 
     def __len__(self):
         return len(self.id_to_label)
+
+"""
