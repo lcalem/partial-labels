@@ -78,10 +78,10 @@ class PascalVOCDataGenerator(object):
             self.id_to_label[image_id] = np.zeros(self.nb_classes)
 
     def _fill_id_to_label_dict_with_classes(self):
-        """_fill_id_to_label_dict_with_classes
+        '''_fill_id_to_label_dict_with_classes
         For each class, the <class>_<subset>.txt file contain the presence information
         of this class in the image
-        """
+        '''
         for i in range(self.nb_classes):
             label = self.labels[i]
             # Open the <class>_<subset>.txt file

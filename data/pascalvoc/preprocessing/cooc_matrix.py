@@ -25,13 +25,15 @@ def create_cooc(filepath):
     total_ones = 0
     for i in range(len(cooc)):
         # print(sum(cooc[i]))
-        # print(cooc[i])
+        print(cooc[i])
         total_ones += sum(cooc[i])
         cooc[i] /= sum(cooc[i])
 
+    print(cooc)
+
     print("total", total_ones)
     # saving
-    save_file = filepath.replace('annotations_multilabel', 'cooc_matrix')
+    save_file = filepath.replace('annotations_multilabel', 'cooc_matrix').replace('.csv', '')
     np.save(save_file, cooc)
 
 
