@@ -24,7 +24,7 @@ NB_CLASSES = 20
 
 class PascalVOC(Dataset):
 
-    supported_keys = ('image', 'multilabel')
+    supported_keys = ('image', 'multilabel', 'cooc_matrix')
 
     def __init__(self,
                  dataset_path,
@@ -35,7 +35,7 @@ class PascalVOC(Dataset):
                  p=None):
         '''
         Only multilabel for now
-        - dataset_path: folder where VOCdevkit/VOC2007/ is contained
+        - dataset_path:  blabla/VOCdevkit/VOC2007/
         - mode: train / val / trainval / test -> file to be loaded
         - p: known labels proportion -> will be used to open the correct partial dataset file (only for training)
 
@@ -62,6 +62,7 @@ class PascalVOC(Dataset):
         self.samples = defaultdict(dict)
         annotations_file = self.get_annot_file(p)
         self.load_annotations(annotations_file)
+        self.init_cooc()
 
         Dataset.__init__(self)
 
@@ -79,6 +80,17 @@ class PascalVOC(Dataset):
             name = self.mode
 
         return os.path.join(self.dataset_path, 'Annotations/annotations_multilabel_%s.csv' % name)
+
+    def init_cooc(self):
+        '''
+        loading the Co-occurrence matrix from disk in the case where it is static
+        OR
+        only load a zeroed out matrix (not now)
+        '''
+        matrix_filename = 'cooc_matrix_trainval_partial_100_1.npy'
+        matrix_filepath = os.path.join(self.dataset_path, 'Annotations', matrix_filename)
+        self.cooc_matrix = np.load(matrix_filepath)
+        # print(self.cooc_matrix)
 
     def load_annotations(self, annotations_path):
         '''
@@ -154,10 +166,15 @@ class PascalVOC(Dataset):
             return self.img_size
         elif key == 'multilabel':
             return (self.nb_classes, )
+        elif key == 'cooc_matrix':
+            return (self.nb_classes, self.nb_classes)
         else:
             raise Exception('Unknown key %s' % key)
 
     def get_data_dict(self, sample_idxs):
+        '''
+        Creation of the actual batch
+        '''
         output = {}
         sample_ids = [self.sample_ids[i] for i in sample_idxs]
 
@@ -177,7 +194,10 @@ class PascalVOC(Dataset):
 
         target_batch = np.reshape(target_batch, (-1, self.nb_classes))
 
+        self.update_cooc_matrix(target_batch)
+
         output['image'] = img_batch
+        output['cooc_matrix'] = np.repeat(self.cooc_matrix[None, ...], len(sample_idxs), 0)
         output['multilabel'] = target_batch
 
         return output
@@ -203,3 +223,10 @@ class PascalVOC(Dataset):
             labels = [0 if l == -1 else l for l in labels]
 
         return labels
+
+    def update_cooc_matrix(self, target_batch):
+        '''
+
+        '''
+        # print("target batch %s" % str(target_batch))
+        pass
