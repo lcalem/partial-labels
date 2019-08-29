@@ -2,24 +2,26 @@ import os
 
 # because tensorflow.keras.applications doesn't have ResNet101 for some reason we have this workaround
 # ONLY works with keras_applications=1.0.7 since 1.0.6 doesn't have ResNet101 an 1.0.8 removed the set_keras_submodules function
-import tensorflow
+import tensorflow as tf
 
 import keras_applications
 keras_applications.set_keras_submodules(
-    backend=tensorflow.keras.backend,
-    layers=tensorflow.keras.layers,
-    models=tensorflow.keras.models,
-    utils=tensorflow.keras.utils
+    backend=tf.keras.backend,
+    layers=tf.keras.layers,
+    models=tf.keras.models,
+    utils=tf.keras.utils
 )
+import tensorflow.keras.backend as K
 
 from tensorflow.keras import Model, Input
 from tensorflow.keras.applications import ResNet50
 
-from tensorflow.keras.layers import Dense, Flatten, GlobalAveragePooling2D, Activation
+from tensorflow.keras.layers import Dense, Flatten, GlobalAveragePooling2D, Activation, Lambda, Add
 
 from model.losses import get_loss
 from model.metrics import MAP
 from model.networks import BaseModel
+from model import layers
 
 from config.config import cfg
 
@@ -59,8 +61,13 @@ class PriorModel(BaseModel):
 
         # dense + sigmoid for multilabel classification
         x = GlobalAveragePooling2D()(x)
-        sk = Dense(self.n_classes)(x)
-        output = Activation('sigmoid')(sk)
+        logits = Dense(self.n_classes)(x)
+
+        # prior integration
+        prior = Lambda(self.prior_layer, name='prior')(logits)
+        output = Lambda(self.activation_layer2, name='custom_activations')((logits, prior))
+
+        # output = Activation('sigmoid')(sk)
 
         self.model = Model(inputs=inp, outputs=output)
         self.log('Outputs shape %s' % str(self.model.output_shape))
@@ -93,3 +100,56 @@ class PriorModel(BaseModel):
         '''
         print(type(y_true_data))
         print(y_true_data)
+
+    def kullback_leibler_div2(self, logits):
+        '''
+        logits is only one example of shape (1, K)
+        output is the prior for this logit of shape (1, K)
+        '''
+        print('inside KL2 logits size %s' % str(logits.shape))
+
+        def kl(cooc_line):
+            '''
+            TODO test with other p / q ordering
+            '''
+            print('inside KL2 cooc line size %s' % str(cooc_line.shape))
+            p = K.clip(logits, K.epsilon(), 1)
+            q = K.clip(cooc_line, K.epsilon(), 1)
+            print('dtype p %s, dtype q %s' % (K.dtype(p), K.dtype(q)))
+            # return K.sum(p * K.log(p / q), axis=-1)
+            return K.sum(p * K.log(layers.div_layer(p, q)), axis=-1)
+
+        return tf.map_fn(kl, self.cooc_matrix, dtype=tf.float32)
+
+    def prior_layer(self, logits):
+        '''
+        '''
+        print('logits shape: %s and type %s' % (str(logits.shape), type(logits)))
+        # broad_logits = tf.tile(logits, [3, 1])
+        # out = tf.map_fn(self.kullback_leibler_div2, (self.cooc_matrix, broad_logits), dtype=(tf.float32, tf.float64))
+        out = tf.map_fn(self.kullback_leibler_div2, logits, dtype=tf.float32)
+        print('prior shape %s' % str(out))
+        return out
+
+    def activation_layer(self, logits, prior):
+        '''
+        '''
+        pk_tilde = layers.log_layer(prior)
+        combination = Add()([logits, pk_tilde])
+        num = layers.exp_layer(combination)
+
+        denom = layers.sum_tensor_layer(combination)
+        return layers.div_layer(num, denom)
+
+    def activation_layer2(self, inputs):
+        '''
+        '''
+        logits = inputs[0]
+        prior = inputs[1]
+
+        pk_tilde = K.log(prior)
+        combination = logits + pk_tilde
+        num = K.exp(combination)
+
+        denom = layers.sum_tensor_layer(combination)
+        return num / denom
