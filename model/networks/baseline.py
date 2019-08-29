@@ -49,7 +49,6 @@ class Baseline(BaseModel):
         self.build_classifier()
 
         inp = Input(shape=self.input_shape, name='image_input')
-        cooc_matrix = Input(shape=(self.n_classes, self.n_classes), name='cooc_matrix')
 
         # classifier
         x = self.cls_model(inp)
@@ -58,7 +57,7 @@ class Baseline(BaseModel):
         x = GlobalAveragePooling2D()(x)
         output = Dense(self.n_classes, activation='sigmoid')(x)
 
-        self.model = Model(inputs=[inp, cooc_matrix], outputs=output)
+        self.model = Model(inputs=inp, outputs=output)
         self.log('Outputs shape %s' % str(self.model.output_shape))
 
         optimizer = self.build_optimizer()

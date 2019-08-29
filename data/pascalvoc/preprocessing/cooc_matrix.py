@@ -4,7 +4,7 @@ import numpy as np
 
 
 def create_cooc(filepath):
-    cooc = np.zeros((20, 20))
+    cooc = np.zeros((20, 20), dtype=np.float32)
     count_ones = 0
 
     with open(filepath, 'r') as f_in:
