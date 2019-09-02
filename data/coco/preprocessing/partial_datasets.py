@@ -59,6 +59,6 @@ def partal_datasets(annotations_path):
                 locals()['f_%d' % prop].write(partial_labels_line)
 
 
-# python3 partial_datasets.py /share/DEEPLEARNING/datasets/mscoco/annotations/multilabel_train2014.csv
+# python3 partial_datasets.py /share/DEEPLEARNING/datasets/mscoco/annotations/multilabel_train2017.csv
 if __name__ == '__main__':
     partal_datasets(sys.argv[1])

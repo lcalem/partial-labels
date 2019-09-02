@@ -79,6 +79,6 @@ def create_csv(root_dir, original_name):
     write_dataset(root_dir, original_name, id_to_label)
 
 
-# python3 pp_multilabel.py /share/DEEPLEARNING/datasets/mscoco train2014
+# python3 pp_multilabel.py /share/DEEPLEARNING/datasets/mscoco train2017
 if __name__ == '__main__':
     create_csv(sys.argv[1], sys.argv[2])

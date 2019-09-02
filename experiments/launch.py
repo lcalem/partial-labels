@@ -12,7 +12,7 @@ from tensorflow.keras import backend as K
 from config import config_utils
 
 
-from data.pascalvoc.data_gen import PascalVOCDataGenerator
+# from data.pascalvoc.data_gen import PascalVOCDataGenerator
 from data.pascalvoc.pascalvoc import PascalVOC
 from data.coco.coco import CocoGenerator
 from experiments import launch_utils as utils
@@ -68,7 +68,7 @@ class Launcher():
         '''
 
         self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE, p=p)
-        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, y_keys=['multilabel'], batch_size=4952)
+        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, y_keys=['multilabel'], batch_size='all')
 
         # callbacks
         cb_list = self.build_callbacks(p)
@@ -95,7 +95,7 @@ class Launcher():
 
             dataset = PascalVOC(self.data_dir, batch_size, mode, x_keys=['image'], y_keys=y_keys, p=p)
         elif cfg.DATASET.NAME == 'coco':
-            dataset = CocoGenerator(mode, self.data_dir, prop=p)
+            dataset = CocoGenerator(self.data_dir, batch_size, mode, x_keys=['image'], y_keys=y_keys, p=p)
         else:
             raise Exception('Unknown dataset %s' % cfg.DATASET.NAME)
 

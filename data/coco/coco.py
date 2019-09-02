@@ -23,7 +23,6 @@ class CocoGenerator(Dataset):
         data path is base dir: /share/DEEPLEARNING/datasets/mscoco
         '''
         assert year in ['2014', '2017']
-        assert subset in ['train', 'val']
         if prop is not None and subset != 'train':
             raise Exception('prop only for training')
 
@@ -69,7 +68,7 @@ class CocoGenerator(Dataset):
             labels = [0 if l == -1 else l for l in labels]
 
         return labels
-    
+
     def get_img_path(self, img_id):
         prefix = ''
         if self.year == '2014':
