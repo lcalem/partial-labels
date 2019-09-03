@@ -1,19 +1,15 @@
 archi:
     name: baseline
     classifier: resnet50
-    loss: partialbce
+    loss: bce
 dataset:
-    name: coco
-    path: ~/datasets/mscoco/
-    train: train
-    test: val
+    name: pascalvoc
+    path: /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/
+    train: trainval
+    test: test
 image:
     img_size: 448
 batch_size: 16
-callbacks:
-    lr_factor: 0.1
-    lr_trigger:
-        - 10
 training:
     n_epochs: 20
     optimizer: sgd

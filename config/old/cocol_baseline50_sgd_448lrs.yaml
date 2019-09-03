@@ -3,14 +3,15 @@ archi:
     classifier: resnet50
     loss: bce
 dataset:
-    name: pascalvoc
-    path: /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/
-    train: trainval
-    test: test
+    name: coco
+    path: ~/datasets/mscoco/
+    train: train
+    test: val
+    year: '2017'
 image:
     img_size: 448
 batch_size: 16
-callbacks:
+callback:
     lr_factor: 0.1
     lr_trigger:
         - 10

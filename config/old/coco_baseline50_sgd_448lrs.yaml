@@ -1,0 +1,21 @@
+archi:
+    name: baseline
+    classifier: resnet50
+    loss: bce
+dataset:
+    name: coco
+    path: /home/caleml/datasets/mscoco/
+    train: train
+    test: val
+    year: '2014'
+image:
+    img_size: 448
+batch_size: 16
+callback:
+    lr_factor: 0.1
+    lr_trigger:
+        - 15
+training:
+    n_epochs: 20
+    optimizer: sgd
+    start_lr: 0.01

@@ -1,5 +1,5 @@
 archi:
-    name: baseline
+    name: prior
     classifier: resnet50
     loss: partialbce
 dataset:
@@ -10,10 +10,6 @@ dataset:
 image:
     img_size: 448
 batch_size: 16
-callbacks:
-    lr_factor: 0.1
-    lr_trigger:
-        - 10
 training:
     n_epochs: 20
     optimizer: sgd
