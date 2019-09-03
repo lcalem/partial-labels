@@ -41,11 +41,12 @@ def parse_options_file(filepath):
     return config
 
 
-def exp_init(exps_folder=None, exp_name=None):
+def exp_init(cmd, exps_folder=None, exp_name=None):
     '''
     common actions for setuping an experiment:
     - create experiment folder
     - dump config in it
+    - create cmd file
     - dump current model code in it (because for now we only save weights)
     '''
     if exps_folder is None:
@@ -61,6 +62,11 @@ def exp_init(exps_folder=None, exp_name=None):
     config_path = os.path.join(model_folder, 'config.yaml')
     with open(config_path, 'w+') as f_conf:
         yaml.dump(cfg, f_conf, default_flow_style=False)
+
+    # cmd
+    cmd_path = os.path.join(model_folder, 'cmd.txt')
+    with open(cmd_path, 'w+') as f_cmd:
+        f_cmd.write(cmd + '\n')
 
     # model
     src_folder = os.path.dirname(os.path.realpath(__file__)) + '/..'

@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 
 from pprint import pprint
 
@@ -153,7 +154,7 @@ class Launcher():
 # python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 100
 # python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 90,70,50,30,10
 # python3 launch.py -o pv_partial50_sgd_448lrs -g 3 -p 90,70,50,30,10
-# python3 launch.py -o coco14_baseline_lrs_nomap -g 2 -p 100
+# python3 launch.py -o coco14_baseline_lrs_nomap -g 3 -p 90
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
@@ -161,12 +162,13 @@ if __name__ == '__main__':
     parser.add_argument('--percent', '-p', help='the specific percentage of known labels. When not specified all percentages are sequentially launched')
     parser.add_argument('--exp_name', '-n', help='optional experiment name')
 
+    # options management
     args = parser.parse_args()
     options = utils.parse_options_file(args.options)
-
     config_utils.update_config(options)
 
-    exp_folder = utils.exp_init(args.exp_name)
+    # init
+    exp_folder = utils.exp_init(' '.join(sys.argv), args.exp_name)
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
