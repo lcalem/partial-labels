@@ -26,6 +26,7 @@ cfg.DATAAUGMENTATION.DEFAULT_DICT = {"horizontal_flip": True}
 
 # defining what callback to use
 cfg.CALLBACK = edict()
+cfg.CALLBACK.SKIP_MAP = False
 cfg.CALLBACK.LR_FACTOR = 0.1
 cfg.CALLBACK.LR_TRIGGER = []
 cfg.CALLBACK.PATIENCE_LR = 2
@@ -38,7 +39,6 @@ cfg.CALLBACK.TENSORBOARD.SAVE_GRAPH = True
 
 # define training params
 cfg.TRAINING = edict()
-cfg.TRAINING.N_EPOCH = 15
 cfg.TRAINING.OPTIMIZER = "adam"
 cfg.TRAINING.START_LR = 0.0001
 

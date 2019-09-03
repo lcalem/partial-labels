@@ -4,13 +4,13 @@ archi:
     loss: partialbce
 dataset:
     name: coco
-    path: /share/DEEPLEARNING/datasets/mscoco/
+    path: ~/datasets/mscoco/
     train: train
     test: val
 image:
     img_size: 448
 batch_size: 16
-callbacks:
+callback:
     lr_factor: 0.1
     lr_trigger:
         - 10

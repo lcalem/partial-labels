@@ -1,0 +1,17 @@
+archi:
+    name: baseline
+    classifier: resnet50
+    loss: bce
+dataset:
+    name: coco
+    path: /share/DEEPLEARNING/datasets/mscoco/
+    train: train
+    test: val
+    year: '2017'
+image:
+    img_size: 448
+batch_size: 16
+training:
+    n_epochs: 20
+    optimizer: sgd
+    start_lr: 0.01
