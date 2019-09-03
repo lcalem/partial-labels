@@ -1,8 +1,5 @@
 import argparse
-import datetime
 import os
-import shutil
-import yaml
 
 from pprint import pprint
 
@@ -14,7 +11,7 @@ from config import config_utils
 
 # from data.pascalvoc.data_gen import PascalVOCDataGenerator
 from data.pascalvoc.pascalvoc import PascalVOC
-from data.coco.coco import CocoGenerator
+from data.coco.coco2 import CocoGenerator
 from experiments import launch_utils as utils
 
 from model.callbacks.metric_callbacks import MAPCallback
@@ -95,7 +92,7 @@ class Launcher():
 
             dataset = PascalVOC(self.data_dir, batch_size, mode, x_keys=['image'], y_keys=y_keys, p=p)
         elif cfg.DATASET.NAME == 'coco':
-            dataset = CocoGenerator(self.data_dir, batch_size, mode, x_keys=['image'], y_keys=y_keys, p=p)
+            dataset = CocoGenerator(self.data_dir, batch_size, mode, x_keys=['image'], y_keys=y_keys, year=cfg.DATASET.YEAR, p=p)
         else:
             raise Exception('Unknown dataset %s' % cfg.DATASET.NAME)
 
@@ -136,10 +133,13 @@ class Launcher():
         # X_test, Y_test = next(generator_test)
 
         # MAP (new dataset way)
-        X_test, Y_test = self.dataset_test[0]
+        if not cfg.CALLBACK.SKIP_MAP:
+            X_test, Y_test = self.dataset_test[0]
 
-        map_cb = MAPCallback(X_test, Y_test, self.exp_folder, prop)
-        cb_list.append(map_cb)
+            map_cb = MAPCallback(X_test, Y_test, self.exp_folder, prop)
+            cb_list.append(map_cb)
+        else:
+            print('Skipping mAP callback')
 
         # Save Model
         cb_list.append(SaveModel(self.exp_folder, prop))
@@ -153,7 +153,7 @@ class Launcher():
 # python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 100
 # python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 90,70,50,30,10
 # python3 launch.py -o pv_partial50_sgd_448lrs -g 3 -p 90,70,50,30,10
-# python3 launch.py -o coco_baseline50_sgd_448lrs -g 0 -p 100
+# python3 launch.py -o coco14_baseline_lrs_nomap -g 2 -p 100
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
