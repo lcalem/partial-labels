@@ -23,6 +23,29 @@ class PascalVOC(Dataset):
     supported_modes = ('train', 'val', 'trainval', 'test')
     nb_classes = NB_CLASSES
 
+    def __init__(self,
+                 dataset_path,
+                 batch_size,
+                 mode,
+                 x_keys,
+                 y_keys,
+                 year='2014',
+                 p=None):
+
+        assert year in ['2014', '2017'], 'Invalid Coco year %s (accepted years 2014 and 2017)' % year
+        self.year = year
+
+        self.images_path = os.path.join(dataset_path, '%s%s' % (mode, self.year))
+
+        Dataset.__init__(self, dataset_path, batch_size, mode, x_keys, y_keys, p)
+
+    def load_samples(self):
+        annotations_file = self.get_annot_file(self.p)
+        samples = self.load_annotations(annotations_file)
+
+        self.targets = samples
+        return samples.keys()
+
     def get_annot_file(self, p):
         if p is not None:
             assert self.mode.startswith('train'), 'partial labels datasets only available for training'
@@ -122,7 +145,7 @@ class PascalVOC(Dataset):
         -1 for train
         0 for test or val
         '''
-        labels = self.samples[image_id]['multilabel']
+        labels = self.targets[image_id]['multilabel']
         if self.mode in ['val', 'test']:
             labels = [0 if l == -1 else l for l in labels]
 

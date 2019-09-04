@@ -45,13 +45,10 @@ class Dataset(Sequence):
 
         self.img_size = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.N_CHANNELS)
 
-        # target loading
-        annotations_file = self.get_annot_file(p)
-        samples = self.load_annotations(annotations_file)
-
-        self.sample_ids = sorted(samples.keys())   # we sort it by # sample to make sure it's always the same order
-        self.samples = {k: samples[k] for k in self.sample_ids}
-        self.nb_samples = len(self.samples)
+        # loading samples
+        sample_ids = self.load_samples()
+        self.sample_ids = sorted(sample_ids)   # we sort it by # sample to make sure it's always the same order
+        self.nb_samples = len(self.sample_ids)
 
         self.batch_size = self.nb_samples if batch_size == 'all' else batch_size
 
@@ -107,6 +104,13 @@ class Dataset(Sequence):
             data_dict[key] = data[key]
 
         return data_dict
+
+    def load_samples(self):
+        '''
+        returns a list of sample ids
+        optional: can load the targets if possible
+        '''
+        raise NotImplementedError
 
     def get_annot_file(self, p):
         '''
