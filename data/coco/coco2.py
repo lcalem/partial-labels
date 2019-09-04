@@ -35,6 +35,13 @@ class CocoGenerator(Dataset):
 
         Dataset.__init__(self, dataset_path, batch_size, mode, x_keys, y_keys, p)
 
+    def load_samples(self):
+        annotations_file = self.get_annot_file(self.p)
+        samples = self.load_annotations(annotations_file)
+
+        self.targets = samples
+        return samples.keys()
+
     def get_annot_file(self, p):
         if self.mode == 'val':
             dataset_path = os.path.join(self.dataset_path, 'annotations', 'multilabel_val%s.csv' % self.year)
@@ -112,7 +119,7 @@ class CocoGenerator(Dataset):
         -1 for train
         0 for test or val
         '''
-        labels = self.samples[image_id]['multilabel']
+        labels = self.targets[image_id]['multilabel']
         if self.mode in ['val', 'test']:
             labels = [0 if l == -1 else l for l in labels]
 
