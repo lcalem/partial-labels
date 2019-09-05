@@ -12,12 +12,13 @@ def load_ids():
         'train_img': 376,
         'train_obj': 625,
         'val_img': 337,
-        'val_obj': 625
+        'val_obj': 625,
+        'superclass': 'vehicle'
     }
 
     '''
     # most of the fields in class_id.csv are integers
-    def int_or_not(key, val): return (val if key == 'name' else int(val))
+    def int_or_not(key, val): return (val if key in ['name', 'superclass'] else int(val))
 
     here = os.path.abspath(os.path.dirname(__file__))
 
