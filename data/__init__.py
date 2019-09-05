@@ -46,8 +46,7 @@ class Dataset(Sequence):
         self.img_size = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.N_CHANNELS)
 
         # loading samples
-        sample_ids = self.load_samples()
-        self.sample_ids = sorted(sample_ids)   # we sort it by # sample to make sure it's always the same order
+        self.sample_ids = self.load_samples()
         self.nb_samples = len(self.sample_ids)
 
         self.batch_size = self.nb_samples if batch_size == 'all' else batch_size

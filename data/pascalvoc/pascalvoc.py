@@ -44,7 +44,7 @@ class PascalVOC(Dataset):
         samples = self.load_annotations(annotations_file)
 
         self.targets = samples
-        return samples.keys()
+        return sorted(samples.keys()) # we sort it by # sample to make sure it's always the same order
 
     def get_annot_file(self, p):
         if p is not None:
