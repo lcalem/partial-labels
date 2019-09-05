@@ -19,6 +19,8 @@ from model.callbacks.metric_callbacks import MAPCallback
 from model.callbacks.save_callback import SaveModel
 from model.callbacks.scheduler import lr_scheduler
 from model.networks.baseline import Baseline
+from model.utils import log
+
 from config.config import cfg
 
 
@@ -33,6 +35,7 @@ class Launcher():
         '''
         self.exp_folder = exp_folder   # still not sure this should go in config or not
         self.data_dir = cfg.DATASET.PATH
+        self.relabel = cfg.RELABEL.ACTIVE
 
         if percent is None:
             self.exp_percents = ALL_PCT
@@ -52,7 +55,12 @@ class Launcher():
         '''
         for p in self.exp_percents:
             print('\n=====================\nLaunching experiment for percentage %s \n' % p)
-            self.launch_percentage(p)
+
+            # made two separate functions to avoid clutter
+            if self.relabel:
+                self.launch_percentage_relabel(p)
+            else:
+                self.launch_percentage(p)
             print('\n=====================')
 
     def launch_percentage(self, p):
@@ -76,8 +84,38 @@ class Launcher():
 
         steps_per_epoch = len(self.dataset_train)
         self.model.train(self.dataset_train, steps_per_epoch=steps_per_epoch, cb_list=cb_list)
-        # steps_per_epoch = int(len(self.dataset_train.id_to_label) / cfg.BATCH_SIZE) + 1
-        # self.model.train(self.dataset_train.flow(batch_size=cfg.BATCH_SIZE), steps_per_epoch=steps_per_epoch, cb_list=cb_list)
+
+        # cleaning (to release memory before next launch)
+        K.clear_session()
+        del self.model
+
+    def launch_percentage_relabel(self, p):
+        '''
+        For a given known label percentage p:
+
+        1. load dataset
+        3. callbacks
+        4. load / build model
+        5. train
+        '''
+
+        # model
+        self.build_model(self.dataset_train.nb_classes, p)
+
+        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, y_keys=['multilabel'], batch_size='all')
+        self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE, p=p)
+
+        for relabel_step in range(cfg.RELABEL.STEPS):
+            log.printcn(log.OKBLUE, '\nDoing relabel step %s' % (relabel_step))
+
+            # callbacks
+            cb_list = self.build_callbacks(p, relabel_step=relabel_step)
+
+            # actual training
+            self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list)
+
+            # relabeling
+            self.relabel_dataset()
 
         # cleaning (to release memory before next launch)
         K.clear_session()
@@ -109,7 +147,7 @@ class Launcher():
 
         self.model.build()
 
-    def build_callbacks(self, prop):
+    def build_callbacks(self, prop, relabel_step=None):
         '''
         prop = proportion of known labels of current run
 
@@ -143,12 +181,33 @@ class Launcher():
             print('Skipping mAP callback')
 
         # Save Model
-        cb_list.append(SaveModel(self.exp_folder, prop))
+        cb_list.append(SaveModel(self.exp_folder, prop, relabel_step=relabel_step))
 
         # Learning rate scheduler
         cb_list.append(LearningRateScheduler(lr_scheduler))
 
         return cb_list
+
+    def relabel_dataset(self):
+        '''
+        Use model to make predictions
+        Use predictions to relabel elements (create a new relabeled csv dataset)
+        Use created csv to update dataset train
+        '''
+        log.printcn(log.OKBLUE, '\nDoing relabeling inference step')
+
+        # predict
+        for i in range(len(self.dataset_train)):
+            x_batch, y_batch = self.dataset_train[i]
+
+            y_pred = self.model.predict(x_batch)
+
+        # save new targets as file
+        targets_path = os.path.join(self.exp_folder, 'relabeling', 'relabeling_%s_%sp.csv' % (self.method, self.prop))
+        os.makedirs(os.path.dirname(targets_path), exist_ok=True)
+
+        # update dataset
+        self.dataset_train.update_targets(targets_path)
 
 
 # python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 100

@@ -8,7 +8,9 @@ dataset:
     train: trainval
     test: test
 relabel:
-    trigger_epoch: 5
+    active: true
+    steps: 3
+    method: conditional
 image:
     img_size: 448
 batch_size: 16

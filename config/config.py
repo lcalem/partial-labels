@@ -47,3 +47,7 @@ cfg.MULTIP = edict()
 cfg.MULTIP.N_WORKERS = 2
 cfg.MULTIP.MAX_QUEUE_SIZE = 10
 cfg.MULTIP.USE_MULTIPROCESS = False
+
+# specifics
+cfg.RELABEL = edict()
+cfg.RELABEL.ACTIVE = False
