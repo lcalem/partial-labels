@@ -26,7 +26,6 @@ cfg.DATAAUGMENTATION.DEFAULT_DICT = {"horizontal_flip": True}
 
 # defining what callback to use
 cfg.CALLBACK = edict()
-cfg.CALLBACK.SKIP_MAP = False
 cfg.CALLBACK.LR_FACTOR = 0.1
 cfg.CALLBACK.LR_TRIGGER = []
 cfg.CALLBACK.PATIENCE_LR = 2
@@ -36,6 +35,8 @@ cfg.CALLBACK.MIN_DELTA = 0.0
 cfg.CALLBACK.TENSORBOARD = edict()
 cfg.CALLBACK.TENSORBOARD.USE_TENSORBOARD = False
 cfg.CALLBACK.TENSORBOARD.SAVE_GRAPH = True
+
+cfg.CALLBACK.VAL_CB = None
 
 # define training params
 cfg.TRAINING = edict()

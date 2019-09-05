@@ -12,7 +12,6 @@ image:
     img_size: 448
 batch_size: 16
 callback:
-    skip_map: true
     lr_factor: 0.1
     lr_trigger:
         - 15
