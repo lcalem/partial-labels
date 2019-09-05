@@ -67,7 +67,7 @@ class PriorModel(BaseModel):
         prior = Lambda(self.prior_layer, name='prior')(logits)
         output = Lambda(self.activation_layer2, name='custom_activations')((logits, prior))
 
-        # output = Activation('sigmoid')(sk)
+        # output = Activation('sigmoid')(logits)
 
         self.model = Model(inputs=inp, outputs=output)
         self.log('Outputs shape %s' % str(self.model.output_shape))
@@ -149,7 +149,10 @@ class PriorModel(BaseModel):
 
         pk_tilde = K.log(prior)
         combination = logits + pk_tilde
-        num = K.exp(combination)
+        # return tf.nn.softmax(combination)
+        return tf.nn.sigmoid(combination)
 
-        denom = layers.sum_tensor_layer(combination)
-        return num / denom
+        # num = K.exp(combination)
+
+        # denom = layers.sum_tensor_layer(combination)
+        # return num / denom
