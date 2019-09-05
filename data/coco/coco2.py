@@ -40,7 +40,7 @@ class CocoGenerator(Dataset):
         samples = self.load_annotations(annotations_file)
 
         self.targets = samples
-        return samples.keys()
+        return sorted(samples.keys())
 
     def get_annot_file(self, p):
         if self.mode == 'val':

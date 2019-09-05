@@ -1,0 +1,108 @@
+import os
+import numpy as np
+import glob
+
+from data import Dataset
+from config.config import cfg
+
+import tensorflow as tf
+
+NB_CLASSES = 4 # Background, Liver, Pancreas, Stomach
+
+
+class IrcadLPS(Dataset):
+
+    supported_keys = ('image', 'segmentation')
+    supported_modes = ('train', 'valid')
+    nb_classes = NB_CLASSES
+
+    def __init__(self,
+                 dataset_path,
+                 batch_size,
+                 mode,
+                 x_keys,
+                 y_keys,
+                 split_name,
+                 valid_split_number=0,
+                 p=None):
+
+        # Setting the random generator seed
+        np.random.seed(cfg.RANDOM_SEED)
+        
+        self.images_path = os.path.join(dataset_path, 'images')
+        self.annotations_path = os.path.join(dataset_path, 'annotations')
+        
+        self.valid_split_number = valid_split_number
+        self.split_name = split_name
+        
+        Dataset.__init__(self, dataset_path, batch_size, mode, x_keys, y_keys, p)
+
+    def load_samples(self):
+        if self.mode == 'valid':
+            annotations_file = os.path.join(self.dataset_path, 'splits', '{}.{}'.format(self.split_name, self.valid_split_number))
+            samples = self._read_split_file(annotations_file)
+        elif self.mode == 'train':
+            all_splits_files = glob.glob(os.path.join(self.dataset_path, 'splits', '{}.*'.format(self.split_name)))
+            all_splits_files = [x for x in all_splits_files if not x.endswith(str(self.valid_split_number))]
+            samples = []
+            for split_file in all_splits_files:
+                samples += self._read_split_file(split_file)
+        else:
+            raise Exception('Unknown mode {}'.format(self.mode))
+
+        samples = sorted(samples)
+        np.random.shuffle(samples)
+        return samples
+
+    
+    def _read_split_file(self, filename):
+        with open(filename, 'r') as f:
+            line = f.read()
+        patient_ids = [int(x) for x in line.split(';') if x != '']
+        
+        samples = []
+        for pid in patient_ids:
+            samples += [str(pid)+'/'+x for x in os.listdir(os.path.join(self.annotations_path, str(pid)))]
+        
+        return samples
+
+
+    def get_key_shape(self, key):
+        if key == 'image':
+            return self.img_size
+        elif key == 'segmentation':
+            return self.img_size
+        else:
+            raise Exception('Unknown key {}'.format(key))
+
+    def get_data_dict(self, sample_idxs):
+        '''
+        Creation of the actual batch
+        '''
+        output = {}
+        sample_ids = [self.sample_ids[i] for i in sample_idxs]
+
+        img_batch = []
+        target_batch = []
+
+        for img_id in sample_ids:
+            img_path = os.path.join(self.images_path, img_id)
+            img = np.load(img_path)
+            img_batch.append(img)
+
+            target_path = os.path.join(self.annotations_path, img_id)
+            target = np.load(target_path)
+            target = tf.keras.utils.to_categorical(target, self.nb_classes)
+            target_batch.append(target)
+
+        img_batch = np.reshape(img_batch, (-1, self.img_size[0], self.img_size[1], 1))
+        target_batch = np.reshape(target_batch, (-1, self.img_size[0], self.img_size[1], self.nb_classes))
+
+        output['image'] = img_batch
+        output['segmentation'] = target_batch
+
+        return output
+
+
+    def init_cooc(self):
+        pass
