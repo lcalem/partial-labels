@@ -10,7 +10,8 @@ dataset:
 relabel:
     active: true
     steps: 3
-    method: conditional
+    prior: conditional
+    prior_path: /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/Annotations/prior_matrix_trainval_partial_100_1.json
 image:
     img_size: 448
 batch_size: 16
@@ -18,3 +19,5 @@ training:
     n_epochs: 20
     optimizer: sgd
     start_lr: 0.01
+callback:
+    val_cb: map

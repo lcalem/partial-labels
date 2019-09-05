@@ -15,3 +15,5 @@ training:
     n_epochs: 20
     optimizer: sgd
     start_lr: 0.01
+callback:
+    val_cb: map
