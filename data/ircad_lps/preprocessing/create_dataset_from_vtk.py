@@ -28,6 +28,10 @@ def create_dataset_from_vtk(data_dir):
         pancreas_annot, _ = read_vtk(pancreas_annot_path)
         stomach_annot, _ = read_vtk(stomach_annot_path)
 
+        if image.shape[1] != 512 or image.shape[2] != 512:
+            print('Wrong shape : ', image.shape)
+            continue
+        
         # Clip image values between [-1000, 2000]
         image = np.clip(image, -1000, 2000)
         
