@@ -117,7 +117,7 @@ class Launcher():
             self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list)
 
             # relabeling
-            self.relabel_dataset()
+            self.relabel_dataset(relabel_step)
 
         # cleaning (to release memory before next launch)
         K.clear_session()
@@ -162,29 +162,20 @@ class Launcher():
         SaveModel
         LearningRateScheduler
         '''
-        print("building callbacks")
+        log.printcn(log.OKBLUE, 'Building callbacks')
         cb_list = list()
 
         # tensorboard
         logs_folder = os.environ['HOME'] + '/partial_experiments/tensorboard/' + self.exp_folder.split('/')[-1] + '/prop%s' % prop
-        print('Tensorboard log folder %s' % logs_folder)
+        log.printcn(log.OKBLUE, 'Tensorboard log folder %s' % logs_folder)
         tensorboard = TensorBoard(log_dir=os.path.join(logs_folder, 'tensorboard'))
         cb_list.append(tensorboard)
 
-        # MAP (old dataset way)
-        # batch_size = len(self.dataset_test)
-        # generator_test = self.dataset_test.flow(batch_size=batch_size)
-        # print("test data length %s" % len(self.dataset_test))
-        # X_test, Y_test = next(generator_test)
-
-        # MAP (new dataset way)
-        if not cfg.CALLBACK.SKIP_MAP:
-            X_test, Y_test = self.dataset_test[0]
-
-            map_cb = MAPCallback(X_test, Y_test, self.exp_folder, prop)
-            cb_list.append(map_cb)
+        # Validation callback
+        if cfg.CALLBACK.VAL_CB is not None:
+            cb_list.append(self.build_val_cn(cfg.CALLBACK.VAL_CB, p=prop))
         else:
-            print('Skipping mAP callback')
+            log.printcn(log.WARNING, 'Skipping validation callback')
 
         # Save Model
         cb_list.append(SaveModel(self.exp_folder, prop, relabel_step=relabel_step))
@@ -194,32 +185,28 @@ class Launcher():
 
         return cb_list
 
-    def relabel_dataset(self):
+    def build_val_cb(self, cb_name, p):
         '''
-        Use model to make predictions
-        Use predictions to relabel elements (create a new relabeled csv dataset)
-        Use created csv to update dataset train
+        Validation callback
+        Different datasets require different validations, like mAP, DICE, etc
+        This callback is instanciated here
         '''
-        log.printcn(log.OKBLUE, '\nDoing relabeling inference step')
+        if cb_name == 'map':
+            log.printcn(log.OKBLUE, 'loading mAP callback')
+            X_test, Y_test = self.dataset_test[0]
 
-        # predict
-        for i in range(len(self.dataset_train)):
-            x_batch, y_batch = self.dataset_train[i]
+            map_cb = MAPCallback(X_test, Y_test, self.exp_folder, p)
+            return map_cb
 
-            y_pred = self.model.predict(x_batch)
-
-        # save new targets as file
-        targets_path = os.path.join(self.exp_folder, 'relabeling', 'relabeling_%s_%sp.csv' % (self.method, self.prop))
-        os.makedirs(os.path.dirname(targets_path), exist_ok=True)
-
-        # update dataset
-        self.dataset_train.update_targets(targets_path)
+        else:
+            raise Exception('Invalid validation callback %s' % cb_name)
 
 
 # python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 100
 # python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 90,70,50,30,10
 # python3 launch.py -o pv_partial50_sgd_448lrs -g 3 -p 90,70,50,30,10
 # python3 launch.py -o coco14_baseline_lrs_nomap -g 3 -p 90
+# python3 launch.py -p pv_relabel -g 3 -p 50
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
