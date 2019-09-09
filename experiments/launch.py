@@ -13,12 +13,14 @@ from config import config_utils
 # from data.pascalvoc.data_gen import PascalVOCDataGenerator
 from data.pascalvoc.pascalvoc import PascalVOC
 from data.coco.coco2 import CocoGenerator
+from data.ircad_lps.ircad_lps import IrcadLPS
 from experiments import launch_utils as utils
 
 from model.callbacks.metric_callbacks import MAPCallback
 from model.callbacks.save_callback import SaveModel
 from model.callbacks.scheduler import lr_scheduler
 from model.networks.baseline import Baseline
+from model.networks.seg_baseline import SegBaseline
 from model.utils import log
 
 from model import priors
@@ -136,6 +138,8 @@ class Launcher():
             dataset = PascalVOC(self.data_dir, batch_size, mode, x_keys=['image'], y_keys=y_keys, p=p)
         elif cfg.DATASET.NAME == 'coco':
             dataset = CocoGenerator(self.data_dir, batch_size, mode, x_keys=['image'], y_keys=y_keys, year=cfg.DATASET.YEAR, p=p)
+        elif cfg.DATASET.NAME == 'ircad_lps':
+            dataset = IrcadLPS(self.data_dir, batch_size, mode, x_keys=['image'], y_keys=['segmentation'], split_name='split_1', valid_split_number=0)
         else:
             raise Exception('Unknown dataset %s' % cfg.DATASET.NAME)
 
@@ -148,6 +152,8 @@ class Launcher():
         print("building model")
         if cfg.ARCHI.NAME == 'baseline':
             self.model = Baseline(self.exp_folder, n_classes, p)
+        elif cfg.ARCHI.NAME == 'seg_baseline':
+            self.model = SegBaseline(self.exp_folder, n_classes, p)
 
         self.model.build()
 
