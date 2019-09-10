@@ -20,7 +20,7 @@ class ConditionalPrior(BasePrior):
     - vehicle
     '''
 
-    def __init__(self, matrix_path):
+    def __init__(self, matrix_path, nb_classes=20, method='product'):
 
         class_info = load_ids()
         self.id2superclass = {v['id']: v['superclass'] for v in class_info.values()}
@@ -29,7 +29,10 @@ class ConditionalPrior(BasePrior):
         print('loaded matrix')
         pprint(self.prior_matrix)
 
+        self.nb_classes = 20
+
         self.threshold = 0.5
+        self.combination_method = method
 
     def load_matrix(self, matrix_path):
         with open(matrix_path, 'r') as f_matrix:
@@ -48,10 +51,10 @@ class ConditionalPrior(BasePrior):
         TODO:
         '''
         pk = np.zeros_like(y_true)
-        assert pk.shape == (cfg.BATCH_SIZE, 20)
+        assert pk.shape == (cfg.BATCH_SIZE, self.nb_classes)
 
         for example in y_true:
-            assert example.shape == (20,)
+            assert example.shape == (self.nb_classes,)
             onehot_example = self.apply_threshold(example)
 
             for i in range(len(example)):
@@ -112,7 +115,49 @@ class ConditionalPrior(BasePrior):
             return cfg.EPSILON
 
     def combine(self, sk, pk):
-        raise NotImplementedError
+        '''
+        produce the outputs weighted by the prior
+
+        Different methods:
+        - product: just element wise product of the visual info (sk) and the prior (pk)
+        - sigmoid
+        - softmax
+        '''
+        return sk * pk
 
     def pick_relabel(self, yk, y_true):
-        raise NotImplementedError
+        '''
+        yk: prior-weighted outputs
+        y_true: true batch (with zeros where the label is missing)
+
+        1. find the values of yk for which there is a missing label at the same index in the y_true batch
+        2. order those values and get the corresponding indexes
+        3. take the 'best' 33% of these values and put a 1 in the relabel output at these indexes
+        '''
+
+        assert yk.shape == (cfg.BATCH_SIZE, self.nb_classes)
+        assert y_true.shape == (cfg.BATCH_SIZE, self.nb_classes)
+
+        relabel_batch = np.copy(y_true)
+
+        # find and sort the relevant values of the outputs
+        relevant_yk = np.where(y_true == 0, yk, 0)   # consider only the values for missing labels
+        sorted_indexes = np.argsort(relevant_yk, axis=None)   # the indexes are flattened
+        sorted_values = [relevant_yk[i // 10][i % 10] for i in sorted_indexes]
+
+        # take the best values and find corresponding indexes
+        nb_ok_indexes = int((np.count_nonzero(sorted_values)) * 0.33)
+        final_indexes = [(i // 10, i % 10) for i in sorted_indexes[len(sorted_values) - nb_ok_indexes: len(sorted_values)]]
+
+        # put the selected values as 1 in the relabel batch
+        xs = [elt[0] for elt in final_indexes]
+        ys = [elt[1] for elt in final_indexes]
+        relabel_batch[(xs, ys)] = 1
+
+        # sanity check (check that the added values are only ones and that they are only where there was a 0 before)
+        check = np.where(y_true != relabel_batch, relabel_batch, 0)
+        assert np.count_nonzero(check) == nb_ok_indexes     # check we added the correct number of values
+        assert np.all(check[np.where(check != 0)] == 1)     # check we only added ones
+        assert np.all(y_true[np.where(check == 1)] == 0)    # check we added values only where the initial batch was 0
+
+        return relabel_batch
