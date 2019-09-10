@@ -103,11 +103,11 @@ class Launcher():
         5. train
         '''
 
-        # model
-        self.build_model(self.dataset_train.nb_classes, p)
-
         self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, y_keys=['multilabel'], batch_size='all')
         self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE, p=p)
+
+        # model
+        self.build_model(self.dataset_train.nb_classes, p)
 
         self.prior = self.load_prior(cfg.RELABEL.PRIOR)
 
@@ -247,7 +247,8 @@ class Launcher():
 # python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 90,70,50,30,10
 # python3 launch.py -o pv_partial50_sgd_448lrs -g 3 -p 90,70,50,30,10
 # python3 launch.py -o coco14_baseline_lrs_nomap -g 3 -p 90
-# python3 launch.py -p pv_relabel -g 3 -p 50
+# python3 launch.py -o pv_relabel -g 3 -p 50
+# python3 launch.py -o relabel_test -g 3 -p 50
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')

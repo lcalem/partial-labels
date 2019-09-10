@@ -56,7 +56,7 @@ def main(path, folder, epoch, prop, config):
     config_path = '%s/partial-labels/config/%s.yaml' % (os.environ['HOME'], config)
     data_dir = '%s/datasets/mscoco' % os.environ['HOME']
 
-    map_fn = metrics.MAP()
+    map_fn = metrics.map.MAP()
 
     # load val dataset (/!\ LONG)
     dataset_test = CocoGenerator('val', data_dir, year='2017')

@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from model.losses import BaseLoss
+from model.losses.base import BaseLoss
 
 
 class PartialBCE(BaseLoss):

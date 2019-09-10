@@ -3,7 +3,7 @@ import json
 import numpy as np
 
 from data.pascalvoc.preprocessing.utils import load_ids
-from model.priors import BasePrior
+from model.priors.base import BasePrior
 
 from pprint import pprint
 

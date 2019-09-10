@@ -2,7 +2,7 @@ import os
 
 from tensorflow.keras.callbacks import Callback
 
-from model import metrics
+from model.metrics.map import MAP
 
 
 class MAPCallback(Callback):
@@ -13,7 +13,7 @@ class MAPCallback(Callback):
         self.x_val = x_val
         self.y_val = y_val
         self.prop = prop
-        self.map = metrics.MAP()
+        self.map = MAP()
 
     def on_epoch_end(self, epoch, logs={}):
         '''
