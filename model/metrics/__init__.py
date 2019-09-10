@@ -1,4 +1,3 @@
-from model.metrics.map import MAP
 
 
 class BaseMetric(object):
