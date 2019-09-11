@@ -107,7 +107,7 @@ class Launcher():
         # model
         self.build_model(self.dataset_train.nb_classes, p)
 
-        self.prior = self.load_prior(cfg.RELABEL.PRIOR)
+        self.prior = self.load_prior(cfg.RELABEL.PRIOR, p)
 
         for relabel_step in range(cfg.RELABEL.STEPS):
             log.printcn(log.OKBLUE, '\nDoing relabel step %s' % (relabel_step))
@@ -116,7 +116,8 @@ class Launcher():
             cb_list = self.build_callbacks(p, relabel_step=relabel_step)
 
             # actual training
-            self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list, dataset_val=self.dataset_test)
+            # self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list, dataset_val=self.dataset_test)
+            self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list)
 
             # relabeling
             self.relabel_dataset(relabel_step, p)
@@ -155,9 +156,11 @@ class Launcher():
 
         self.model.build()
 
-    def load_prior(self, name):
+    def load_prior(self, name, p):
         if name == 'conditional':
-            return priors.ConditionalPrior(cfg.RELABEL.PRIOR_PATH)
+            prior_path = cfg.RELABEL.PRIOR_PATH
+            prior_path = prior_path.replace('$PROP', str(p))
+            return priors.ConditionalPrior(prior_path)
 
     def build_callbacks(self, prop, relabel_step=None):
         '''
@@ -179,7 +182,7 @@ class Launcher():
 
         # Validation callback
         if cfg.CALLBACK.VAL_CB is not None:
-            cb_list.append(self.build_val_cb(cfg.CALLBACK.VAL_CB, p=prop))
+            cb_list.append(self.build_val_cb(cfg.CALLBACK.VAL_CB, p=prop, relabel_step=relabel_step))
         else:
             log.printcn(log.WARNING, 'Skipping validation callback')
 
@@ -191,7 +194,7 @@ class Launcher():
 
         return cb_list
 
-    def build_val_cb(self, cb_name, p):
+    def build_val_cb(self, cb_name, p, relabel_step=None):
         '''
         Validation callback
         Different datasets require different validations, like mAP, DICE, etc
@@ -201,7 +204,7 @@ class Launcher():
             log.printcn(log.OKBLUE, 'loading mAP callback')
             X_test, Y_test = self.dataset_test[0]
 
-            map_cb = MAPCallback(X_test, Y_test, self.exp_folder, p)
+            map_cb = MAPCallback(X_test, Y_test, self.exp_folder, p, relabel_step=relabel_step)
             return map_cb
 
         else:
@@ -279,7 +282,6 @@ class Launcher():
 # python3 launch.py -o pv_partial50_sgd_448lrs -g 3 -p 90,70,50,30,10
 # python3 launch.py -o coco14_baseline_lrs_nomap -g 3 -p 90
 # python3 launch.py -o pv_relabel -g 3 -p 50
-# python3 launch.py -o relabel_test -g 3 -p 50
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
