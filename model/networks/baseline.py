@@ -17,7 +17,7 @@ from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.layers import Dense, Flatten, GlobalAveragePooling2D
 
 from model.losses import get_loss
-from model.metrics import MAP
+from model.metrics.map import MAP
 from model.networks import BaseModel
 
 from config.config import cfg
