@@ -1,4 +1,4 @@
-import tensorflow as tf 
+import tensorflow as tf
 
 import keras_applications
 keras_applications.set_keras_submodules(
@@ -14,7 +14,6 @@ from tensorflow.keras.applications import ResNet50, Xception
 from tensorflow.keras.layers import Dense, Flatten, GlobalAveragePooling2D
 
 from model.losses import get_loss
-from model.metrics import MAP
 from model.networks import BaseModel
 
 from config.config import cfg
@@ -35,7 +34,7 @@ class DiceScore(tf.keras.metrics.Metric):
 
         y_true = tf.cast(y_true, dtype=tf.float32)
         y_pred = tf.cast(y_pred, dtype=tf.float32)
-        
+
         intersection = tf.reduce_sum(y_true * y_pred)
         self.intersection_sum.assign_add(intersection)
         self.true_sum.assign_add(tf.reduce_sum(y_true))
@@ -44,6 +43,7 @@ class DiceScore(tf.keras.metrics.Metric):
     def result(self):
         epsilon = tf.keras.backend.epsilon()
         return (2. * self.intersection_sum + epsilon) / (self.true_sum + self.pred_sum + epsilon)
+
 
 
 class WeightedCrossEntropy(tf.keras.losses.Loss):
@@ -78,7 +78,6 @@ class WeightedCrossEntropy_v2(tf.keras.losses.Loss):
         return cross_entropy
 
 
-
 class SegBaseline(BaseModel):
 
     def __init__(self, exp_folder, n_classes, p=1):
@@ -103,7 +102,7 @@ class SegBaseline(BaseModel):
         #x = tf.keras.layers.Lambda(lambda x: tf.image.resize_bilinear(x, [self.input_shape[0], self.input_shape[1]]))(x)
         
         proba = tf.keras.layers.Activation('softmax')(x)
-        
+
         self.model = Model(inputs=resnet.inputs, outputs=proba, name='cls_model')
 
         self.log('Outputs shape %s' % str(self.model.output_shape))

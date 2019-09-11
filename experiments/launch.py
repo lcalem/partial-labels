@@ -23,6 +23,8 @@ from model.networks.baseline import Baseline
 from model.networks.seg_baseline import SegBaseline
 from model.utils import log
 
+from model import priors
+
 from config.config import cfg
 
 
@@ -101,11 +103,13 @@ class Launcher():
         5. train
         '''
 
+        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, y_keys=['multilabel'], batch_size='all')
+        self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE, p=p)
+
         # model
         self.build_model(self.dataset_train.nb_classes, p)
 
-        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, y_keys=['multilabel'], batch_size='all')
-        self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE, p=p)
+        self.prior = self.load_prior(cfg.RELABEL.PRIOR)
 
         for relabel_step in range(cfg.RELABEL.STEPS):
             log.printcn(log.OKBLUE, '\nDoing relabel step %s' % (relabel_step))
@@ -152,6 +156,10 @@ class Launcher():
             self.model = SegBaseline(self.exp_folder, n_classes, p)
 
         self.model.build()
+
+    def load_prior(self, name):
+        if name == 'conditional':
+            return priors.ConditionalPrior(cfg.RELABEL.PRIOR_PATH)
 
     def build_callbacks(self, prop, relabel_step=None):
         '''
@@ -201,12 +209,46 @@ class Launcher():
         else:
             raise Exception('Invalid validation callback %s' % cb_name)
 
+    def relabel_dataset(self, relabel_step):
+        '''
+        Use model to make predictions
+        Use predictions to relabel elements (create a new relabeled csv dataset)
+        Use created csv to update dataset train
+        '''
+        log.printcn(log.OKBLUE, '\nDoing relabeling inference step')
+
+        # save new targets as file
+        targets_path = os.path.join(self.exp_folder, 'relabeling', 'relabeling_%s_%sp.csv' % (relabel_step, self.prop))
+        os.makedirs(os.path.dirname(targets_path), exist_ok=True)
+
+        with open(targets_path, 'w+') as f_relabel:
+
+            # predict
+            for i in range(len(self.dataset_train)):
+                x_batch, y_batch = self.dataset_train[i]
+
+                y_pred = self.model.predict(x_batch)   # TODO not the logits!!!!!!!!
+                p_k = self.prior.compute_pk(y_batch)
+
+                y_k = self.prior.combine(y_pred, p_k)
+                relabeling = self.prior.pick_relabel(y_k, y_batch)  # (BS, K)
+
+                # write batch to relabel csv
+                for i in range(len(relabeling)):
+                    parts = relabeling[i]
+                    relabel_line = '%s,%s\n' % (str(parts[0]), ','.parts[1:])
+                    f_relabel.write(relabel_line)
+
+        # update dataset
+        self.dataset_train.update_targets(targets_path)
+
 
 # python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 100
 # python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 90,70,50,30,10
 # python3 launch.py -o pv_partial50_sgd_448lrs -g 3 -p 90,70,50,30,10
 # python3 launch.py -o coco14_baseline_lrs_nomap -g 3 -p 90
-# python3 launch.py -p pv_relabel -g 3 -p 50
+# python3 launch.py -o pv_relabel -g 3 -p 50
+# python3 launch.py -o relabel_test -g 3 -p 50
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
