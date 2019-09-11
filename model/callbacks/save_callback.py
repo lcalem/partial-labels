@@ -19,7 +19,7 @@ class SaveModel(Callback):
     def on_epoch_end(self, epoch, logs=None):
 
         suffix = '{prop:02d}_{epoch:03d}'.format(prop=self.prop, epoch=epoch + 1)
-        if self.relabel_step:
+        if self.relabel_step is not None:
             suffix += '_{relabel:02d}'.format(relabel=self.relabel_step)
 
         save_file = os.path.join(self.exp_folder, 'model_%s.h5' % suffix)
