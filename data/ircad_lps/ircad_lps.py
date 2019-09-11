@@ -25,17 +25,19 @@ class IrcadLPS(Dataset):
                  split_name,
                  valid_split_number=0,
                  p=None):
-
+        
         # Setting the random generator seed
         np.random.seed(cfg.RANDOM_SEED)
-        
+
         self.images_path = os.path.join(dataset_path, 'images')
         self.annotations_path = os.path.join(dataset_path, 'annotations')
+        self.missing_annotations_path = os.path.join(dataset_path, 'missing_organs')
         
         self.valid_split_number = valid_split_number
         self.split_name = split_name
         
         Dataset.__init__(self, dataset_path, batch_size, mode, x_keys, y_keys, p)
+    
 
     def load_samples(self):
         if self.mode == 'valid':
@@ -62,7 +64,11 @@ class IrcadLPS(Dataset):
         
         samples = []
         for pid in patient_ids:
-            samples += [str(pid)+'/'+x for x in os.listdir(os.path.join(self.annotations_path, str(pid)))]
+            if self.p is None:
+                p = 100
+            else:
+                p = self.p
+            samples += [str(pid)+'/'+x for x in os.listdir(os.path.join(self.annotations_path, str(p), str(pid)))]
         
         return samples
 
@@ -88,14 +94,21 @@ class IrcadLPS(Dataset):
         for img_id in sample_ids:
             img_path = os.path.join(self.images_path, img_id)
             img = np.load(img_path)
+            img = np.moveaxis(img, 0, -1)
+            img = tf.keras.applications.resnet50.preprocess_input(img)
             img_batch.append(img)
 
-            target_path = os.path.join(self.annotations_path, img_id)
+            if self.mode == 'train':
+                target_path = os.path.join(self.annotations_path, str(self.p), img_id)
+            elif self.mode == 'valid':
+                target_path = os.path.join(self.annotations_path, '100', img_id)
+            else:
+                raise Exception('Wrong mode: {}'.format(self.mode))
             target = np.load(target_path)
             target = tf.keras.utils.to_categorical(target, self.nb_classes)
             target_batch.append(target)
 
-        img_batch = np.reshape(img_batch, (-1, self.img_size[0], self.img_size[1], 1))
+        img_batch = np.reshape(img_batch, (-1, self.img_size[0], self.img_size[1], 3))
         target_batch = np.reshape(target_batch, (-1, self.img_size[0], self.img_size[1], self.nb_classes))
 
         output['image'] = img_batch
