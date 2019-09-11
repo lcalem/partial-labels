@@ -7,10 +7,10 @@ dataset:
     test: valid
 image:
     img_size: 512
-    n_channels: 1
-batch_size: 5
+    n_channels: 3
+batch_size: 10
 training:
-    n_epochs: 20
+    n_epochs: 200
     optimizer: adam
     start_lr: 0.00001
 callback:

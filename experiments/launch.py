@@ -76,7 +76,7 @@ class Launcher():
         '''
 
         self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE, p=p)
-        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, y_keys=['multilabel'], batch_size='all')
+        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE)
 
         # callbacks
         cb_list = self.build_callbacks(p)
@@ -85,7 +85,7 @@ class Launcher():
         self.build_model(self.dataset_train.nb_classes, p)
 
         steps_per_epoch = len(self.dataset_train)
-        self.model.train(self.dataset_train, steps_per_epoch=steps_per_epoch, cb_list=cb_list)
+        self.model.train(self.dataset_train, steps_per_epoch=steps_per_epoch, cb_list=cb_list, dataset_val=self.dataset_test)
 
         # cleaning (to release memory before next launch)
         K.clear_session()
@@ -116,8 +116,7 @@ class Launcher():
             cb_list = self.build_callbacks(p, relabel_step=relabel_step)
 
             # actual training
-            # self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list)
-            self.model.train(self.dataset_train, steps_per_epoch=10, cb_list=cb_list)
+            self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list, dataset_val=self.dataset_test)
 
             # relabeling
             self.relabel_dataset(relabel_step, p)
@@ -136,7 +135,7 @@ class Launcher():
         elif cfg.DATASET.NAME == 'coco':
             dataset = CocoGenerator(self.data_dir, batch_size, mode, x_keys=['image'], y_keys=['multilabel'], year=cfg.DATASET.YEAR, p=p)
         elif cfg.DATASET.NAME == 'ircad_lps':
-            dataset = IrcadLPS(self.data_dir, batch_size, mode, x_keys=['image'], y_keys=['segmentation'], split_name='split_1', valid_split_number=0)
+            dataset = IrcadLPS(self.data_dir, batch_size, mode, x_keys=['image'], y_keys=['segmentation'], split_name='split_1', valid_split_number=0, p=p)
         else:
             raise Exception('Unknown dataset %s' % cfg.DATASET.NAME)
 
