@@ -16,8 +16,6 @@ image:
     img_size: 448
 batch_size: 16
 training:
-    n_epochs: 20
+    n_epochs: 1
     optimizer: sgd
     start_lr: 0.01
-callback:
-    val_cb: map

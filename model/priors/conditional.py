@@ -26,8 +26,6 @@ class ConditionalPrior(BasePrior):
         self.id2superclass = {v['id']: v['superclass'] for v in class_info.values()}
 
         self.prior_matrix = self.load_matrix(matrix_path)
-        print('loaded matrix')
-        pprint(self.prior_matrix)
 
         self.nb_classes = 20
 
@@ -50,20 +48,20 @@ class ConditionalPrior(BasePrior):
 
         TODO:
         '''
-        pk = np.zeros_like(y_true)
-        assert pk.shape == (cfg.BATCH_SIZE, self.nb_classes)
+        pk = np.zeros_like(y_true, dtype=np.float64)
+        assert pk.shape == (cfg.BATCH_SIZE, self.nb_classes), 'wrong pk shape %s' % str(pk.shape)
 
-        for example in y_true:
-            assert example.shape == (self.nb_classes,)
+        for i, example in enumerate(y_true):
+            assert example.shape == (self.nb_classes,), 'wrong example shape %s' % str(example.shape)
             onehot_example = self.apply_threshold(example)
 
-            for i in range(len(example)):
+            for j in range(len(example)):
                 # get the keys
-                class_letter, class_nb, context_key = self.get_keys(i, onehot_example)
+                class_letter, class_nb, context_key = self.get_keys(j, onehot_example)
 
                 # retrieve the conditional probability
                 prob = self.get_conditional(class_letter, class_nb, context_key)
-                pk[example][i] = prob
+                pk[i][j] = prob
 
         return pk
 
@@ -80,9 +78,9 @@ class ConditionalPrior(BasePrior):
         '''
 
         class_letter = self.id2superclass[index][0]
-        assert class_letter in ['a', 'i', 'p', 'v']
+        assert class_letter in ['a', 'i', 'p', 'v'], 'wrong superclass letter %s' % class_letter
         class_nb = int(example[index])
-        assert class_nb in [0, 1]
+        assert class_nb in [0, 1], 'wrong class value %s' % class_nb
 
         context = {'a': 0, 'i': 0, 'p': 0, 'v': 0}    # no default dict to ensure we don't have weird letters coming in // python 3 -> ordered
         for i in range(len(example)):
@@ -91,7 +89,7 @@ class ConditionalPrior(BasePrior):
 
             context[letter] += nb
 
-        context_key = ['%s%s' % (k, min(1, v)) for k, v in context.items() if k != class_letter]
+        context_key = '_'.join(sorted(['%s%s' % (k, min(1, v)) for k, v in context.items() if k != class_letter]))
 
         return class_letter, class_nb, context_key
 
@@ -111,7 +109,7 @@ class ConditionalPrior(BasePrior):
         # otherwise we should compute the prob
         # TODO: this is a manual output since the only missing prob is when all the values are 1 -> epsilon
         else:
-            assert all([int(elt[1]) == 1 for elt in context_key.split('_')])
+            assert all([int(elt[1]) == 1 for elt in context_key.split('_')]), 'unknown state is not full 1 %s' % context_key
             return cfg.EPSILON
 
     def combine(self, sk, pk):
@@ -135,19 +133,19 @@ class ConditionalPrior(BasePrior):
         3. take the 'best' 33% of these values and put a 1 in the relabel output at these indexes
         '''
 
-        assert yk.shape == (cfg.BATCH_SIZE, self.nb_classes)
-        assert y_true.shape == (cfg.BATCH_SIZE, self.nb_classes)
+        assert yk.shape == (cfg.BATCH_SIZE, self.nb_classes), 'wrong yk shape %s' % str(yk.shape)
+        assert y_true.shape == (cfg.BATCH_SIZE, self.nb_classes), 'wrong y_true shape %s' % str(y_true.shape)
 
         relabel_batch = np.copy(y_true)
 
         # find and sort the relevant values of the outputs
         relevant_yk = np.where(y_true == 0, yk, 0)   # consider only the values for missing labels
         sorted_indexes = np.argsort(relevant_yk, axis=None)   # the indexes are flattened
-        sorted_values = [relevant_yk[i // 10][i % 10] for i in sorted_indexes]
+        sorted_values = [relevant_yk[i // self.nb_classes][i % self.nb_classes] for i in sorted_indexes]
 
         # take the best values and find corresponding indexes
         nb_ok_indexes = int((np.count_nonzero(sorted_values)) * 0.33)
-        final_indexes = [(i // 10, i % 10) for i in sorted_indexes[len(sorted_values) - nb_ok_indexes: len(sorted_values)]]
+        final_indexes = [(i // self.nb_classes, i % self.nb_classes) for i in sorted_indexes[len(sorted_values) - nb_ok_indexes: len(sorted_values)]]
 
         # put the selected values as 1 in the relabel batch
         xs = [elt[0] for elt in final_indexes]
@@ -160,4 +158,4 @@ class ConditionalPrior(BasePrior):
         assert np.all(check[np.where(check != 0)] == 1)     # check we only added ones
         assert np.all(y_true[np.where(check == 1)] == 0)    # check we added values only where the initial batch was 0
 
-        return relabel_batch
+        return relabel_batch, nb_ok_indexes
