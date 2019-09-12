@@ -4,7 +4,7 @@ archi:
     loss: bce
 dataset:
     name: coco
-    path: /share/DEEPLEARNING/datasets/mscoco/
+    path: /home/caleml/datasets/mscoco/
     train: train
     test: val
     year: '2014'
