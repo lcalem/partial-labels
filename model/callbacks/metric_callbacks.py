@@ -29,7 +29,7 @@ class MAPCallback(Callback):
         print('ap scores type %s' % type(ap_scores))
         map_score = sum(ap_scores) / len(ap_scores)
 
-        with open(os.path.join(self.exp_folder, 'map%s.csv' % self.relabel_step if self.relabel_step else ''), 'a') as f_out:
+        with open(os.path.join(self.exp_folder, 'map%s.csv' % (self.relabel_step if self.relabel_step else '')), 'a') as f_out:
             # TODO: header line
             line = '%d,%d,%6f,' % (self.prop, epoch, map_score) + ','.join([str(s) for s in ap_scores]) + '\n'
             f_out.write(line)

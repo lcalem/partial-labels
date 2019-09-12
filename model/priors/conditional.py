@@ -109,7 +109,7 @@ class ConditionalPrior(BasePrior):
         # otherwise we should compute the prob
         # TODO: this is a manual output since the only missing prob is when all the values are 1 -> epsilon
         else:
-            assert all([int(elt[1]) == 1 for elt in context_key.split('_')]), 'unknown state is not full 1 %s' % context_key
+            # assert all([int(elt[1]) == 1 for elt in context_key.split('_')]), 'unknown state is not full 1 %s' % context_key
             return cfg.EPSILON
 
     def combine(self, sk, pk):
