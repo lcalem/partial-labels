@@ -111,26 +111,9 @@ class Dataset(Sequence):
         '''
         raise NotImplementedError
 
-    def get_annot_file(self, p):
-        '''
-        returns the absolute path of the annotation file to be loaded
-        '''
-        raise NotImplementedError
-
     def init_cooc(self):
         '''
         loading the Co-occurrence matrix from disk in the case where it is static
-        '''
-        raise NotImplementedError
-
-    def load_annotations(self, annotations_path):
-        '''
-        load annotations from the given path
-
-        returns: a dict of dict containing the ground truths.
-            - First key: sample id,
-            - Second key: ground truth key (multilabel for now, could be a segmentation mask, etc)
-        Example: samples[ID]['multilabel'] = [0, 1, 0, 0, 1]
         '''
         raise NotImplementedError
 
@@ -148,5 +131,11 @@ class Dataset(Sequence):
 
         returns: a dict, with one key per supported_keys element
         Each key contains the batch representation for this key
+        '''
+        raise NotImplementedError
+
+    def update_targets(self, new_path):
+        '''
+        Called during relabeling to tell the dataset to batch from the new targets instead
         '''
         raise NotImplementedError

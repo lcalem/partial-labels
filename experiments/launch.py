@@ -19,8 +19,6 @@ from experiments import launch_utils as utils
 from model.callbacks.metric_callbacks import MAPCallback
 from model.callbacks.save_callback import SaveModel
 from model.callbacks.scheduler import lr_scheduler
-from model.networks.baseline import Baseline
-from model.networks.seg_baseline import SegBaseline
 from model.utils import log
 
 from model import priors
@@ -103,13 +101,13 @@ class Launcher():
         5. train
         '''
 
-        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, y_keys=['multilabel'], batch_size='all')
-        self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE, p=p)
+        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size='all')
+        self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, batch_size=cfg.BATCH_SIZE, p=p)
 
         # model
         self.build_model(self.dataset_train.nb_classes, p)
 
-        self.prior = self.load_prior(cfg.RELABEL.PRIOR)
+        self.prior = self.load_prior(cfg.RELABEL.PRIOR, p)
 
         for relabel_step in range(cfg.RELABEL.STEPS):
             log.printcn(log.OKBLUE, '\nDoing relabel step %s' % (relabel_step))
@@ -118,26 +116,25 @@ class Launcher():
             cb_list = self.build_callbacks(p, relabel_step=relabel_step)
 
             # actual training
-            self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list, dataset_val=self.dataset_test)
+            # self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list, dataset_val=self.dataset_test)
+            self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list)
 
             # relabeling
-            self.relabel_dataset(relabel_step)
+            self.relabel_dataset(relabel_step, p)
 
         # cleaning (to release memory before next launch)
         K.clear_session()
         del self.model
 
-    def load_dataset(self, mode, y_keys, batch_size, p=None):
+    def load_dataset(self, mode, batch_size, p=None):
         '''
         we keep an ugly switch for now
         TODO: better dataset mode management
         '''
         if cfg.DATASET.NAME == 'pascalvoc':
-            # dataset = PascalVOCDataGenerator(mode, self.data_dir, prop=percentage)
-
-            dataset = PascalVOC(self.data_dir, batch_size, mode, x_keys=['image'], y_keys=y_keys, p=p)
+            dataset = PascalVOC(self.data_dir, batch_size, mode, x_keys=['image', 'image_id'], y_keys=['multilabel'], p=p)
         elif cfg.DATASET.NAME == 'coco':
-            dataset = CocoGenerator(self.data_dir, batch_size, mode, x_keys=['image'], y_keys=y_keys, year=cfg.DATASET.YEAR, p=p)
+            dataset = CocoGenerator(self.data_dir, batch_size, mode, x_keys=['image'], y_keys=['multilabel'], year=cfg.DATASET.YEAR, p=p)
         elif cfg.DATASET.NAME == 'ircad_lps':
             dataset = IrcadLPS(self.data_dir, batch_size, mode, x_keys=['image', 'ambiguity'], y_keys=['segmentation'], split_name='split_1', valid_split_number=0, p=p)
         else:
@@ -151,15 +148,19 @@ class Launcher():
         '''
         print("building model")
         if cfg.ARCHI.NAME == 'baseline':
+            from model.networks.baseline import Baseline
             self.model = Baseline(self.exp_folder, n_classes, p)
         elif cfg.ARCHI.NAME == 'seg_baseline':
+            from model.networks.seg_baseline import SegBaseline
             self.model = SegBaseline(self.exp_folder, n_classes, p)
 
         self.model.build()
 
-    def load_prior(self, name):
+    def load_prior(self, name, p):
         if name == 'conditional':
-            return priors.ConditionalPrior(cfg.RELABEL.PRIOR_PATH)
+            prior_path = cfg.RELABEL.PRIOR_PATH
+            prior_path = prior_path.replace('$PROP', str(p))
+            return priors.ConditionalPrior(prior_path)
 
     def build_callbacks(self, prop, relabel_step=None):
         '''
@@ -181,7 +182,7 @@ class Launcher():
 
         # Validation callback
         if cfg.CALLBACK.VAL_CB is not None:
-            cb_list.append(self.build_val_cn(cfg.CALLBACK.VAL_CB, p=prop))
+            cb_list.append(self.build_val_cb(cfg.CALLBACK.VAL_CB, p=prop, relabel_step=relabel_step))
         else:
             log.printcn(log.WARNING, 'Skipping validation callback')
 
@@ -193,7 +194,7 @@ class Launcher():
 
         return cb_list
 
-    def build_val_cb(self, cb_name, p):
+    def build_val_cb(self, cb_name, p, relabel_step=None):
         '''
         Validation callback
         Different datasets require different validations, like mAP, DICE, etc
@@ -203,23 +204,26 @@ class Launcher():
             log.printcn(log.OKBLUE, 'loading mAP callback')
             X_test, Y_test = self.dataset_test[0]
 
-            map_cb = MAPCallback(X_test, Y_test, self.exp_folder, p)
+            map_cb = MAPCallback(X_test, Y_test, self.exp_folder, p, relabel_step=relabel_step)
             return map_cb
 
         else:
             raise Exception('Invalid validation callback %s' % cb_name)
 
-    def relabel_dataset(self, relabel_step):
+    def relabel_dataset(self, relabel_step, p):
         '''
         Use model to make predictions
         Use predictions to relabel elements (create a new relabeled csv dataset)
         Use created csv to update dataset train
         '''
-        log.printcn(log.OKBLUE, '\nDoing relabeling inference step')
+        log.printcn(log.OKBLUE, '\nDoing relabeling inference step %s' % relabel_step)
 
         # save new targets as file
-        targets_path = os.path.join(self.exp_folder, 'relabeling', 'relabeling_%s_%sp.csv' % (relabel_step, self.prop))
+        targets_path = os.path.join(self.exp_folder, 'relabeling', 'relabeling_%s_%sp.csv' % (relabel_step, p))
         os.makedirs(os.path.dirname(targets_path), exist_ok=True)
+
+        total_added = 0
+        seen_keys = set()
 
         with open(targets_path, 'w+') as f_relabel:
 
@@ -228,16 +232,46 @@ class Launcher():
                 x_batch, y_batch = self.dataset_train[i]
 
                 y_pred = self.model.predict(x_batch)   # TODO not the logits!!!!!!!!
-                p_k = self.prior.compute_pk(y_batch)
+                # print('shape of y_pred %s' % str(y_pred.shape))
+                p_k = self.prior.compute_pk(y_batch[0])
 
                 y_k = self.prior.combine(y_pred, p_k)
-                relabeling = self.prior.pick_relabel(y_k, y_batch)  # (BS, K)
+                relabeling, nb_added = self.prior.pick_relabel(y_k, y_batch[0])  # (BS, K)
+                total_added += nb_added
+
+                # print('y batch')
+                # print(y_batch)
+
+                # print('y pred')
+                # print(y_pred)
+
+                # print('pk')
+                # print(p_k)
+
+                # print('y_k')
+                # print(y_k)
+
+                # print('relabeling')
+                # print(relabeling)
 
                 # write batch to relabel csv
                 for i in range(len(relabeling)):
                     parts = relabeling[i]
-                    relabel_line = '%s,%s\n' % (str(parts[0]), ','.parts[1:])
-                    f_relabel.write(relabel_line)
+                    img_id = x_batch[1][i][0]
+
+                    # for last batch we have duplicates to fill the remaining batch size, we don't want to write those
+                    if img_id not in seen_keys:
+                        relabel_line = '%s,%s,%s\n' % (img_id, str(parts[0]), ','.join([str(elt) for elt in parts[1:]]))
+                        f_relabel.write(relabel_line)
+
+                    seen_keys.add(img_id)
+
+        relabel_logpath = os.path.join(self.exp_folder, 'relabeling', 'log_relabeling.csv')
+        with open(relabel_logpath, 'a') as f_log:
+            f_log.write('%s,%s,%s\n' % (p, relabel_step, nb_added))
+
+        log.printcn(log.OKBLUE, '\tAdded %s labels during relabeling, logging into %s' % (total_added, relabel_logpath))
+        log.printcn(log.OKBLUE, '\tNew dataset path %s' % (targets_path))
 
         # update dataset
         self.dataset_train.update_targets(targets_path)
@@ -248,7 +282,6 @@ class Launcher():
 # python3 launch.py -o pv_partial50_sgd_448lrs -g 3 -p 90,70,50,30,10
 # python3 launch.py -o coco14_baseline_lrs_nomap -g 3 -p 90
 # python3 launch.py -o pv_relabel -g 3 -p 50
-# python3 launch.py -o relabel_test -g 3 -p 50
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')

@@ -6,13 +6,15 @@ from model.metrics.map import MAP
 
 
 class MAPCallback(Callback):
-    def __init__(self, x_val, y_val, exp_folder, prop):
+    def __init__(self, x_val, y_val, exp_folder, prop, relabel_step=None):
         super(Callback, self).__init__()
 
         self.exp_folder = exp_folder
         self.x_val = x_val
         self.y_val = y_val
         self.prop = prop
+        self.relabel_step = relabel_step
+
         self.map = MAP()
 
     def on_epoch_end(self, epoch, logs={}):
@@ -27,7 +29,8 @@ class MAPCallback(Callback):
         print('ap scores type %s' % type(ap_scores))
         map_score = sum(ap_scores) / len(ap_scores)
 
-        with open(os.path.join(self.exp_folder, 'map.csv'), 'a') as f_out:
+        with open(os.path.join(self.exp_folder, 'map%s.csv' % (self.relabel_step if self.relabel_step else '')), 'a') as f_out:
+            # TODO: header line
             line = '%d,%d,%6f,' % (self.prop, epoch, map_score) + ','.join([str(s) for s in ap_scores]) + '\n'
             f_out.write(line)
 

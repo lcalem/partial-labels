@@ -19,7 +19,7 @@ NB_CLASSES = 20
 
 class PascalVOC(Dataset):
 
-    supported_keys = ('image', 'multilabel', 'cooc_matrix')
+    supported_keys = ('image', 'multilabel', 'cooc_matrix', 'image_id')
     supported_modes = ('train', 'val', 'trainval', 'test')
     nb_classes = NB_CLASSES
 
@@ -39,12 +39,16 @@ class PascalVOC(Dataset):
 
         Dataset.__init__(self, dataset_path, batch_size, mode, x_keys, y_keys, p)
 
-    def load_samples(self):
-        annotations_file = self.get_annot_file(self.p)
+    def load_samples(self, filepath=None):
+        if filepath is None:
+            annotations_file = self.get_annot_file(self.p)
+        else:
+            annotations_file = filepath
+
         samples = self.load_annotations(annotations_file)
 
         self.targets = samples
-        return sorted(samples.keys()) # we sort it by # sample to make sure it's always the same order
+        return sorted(samples.keys())  # we sort it by # sample to make sure it's always the same order
 
     def get_annot_file(self, p):
         if p is not None:
@@ -97,6 +101,8 @@ class PascalVOC(Dataset):
             return (self.nb_classes, )
         elif key == 'cooc_matrix':
             return (self.nb_classes, self.nb_classes)
+        elif key == 'image_id':
+            return (1, )
         else:
             raise Exception('Unknown key %s' % key)
 
@@ -109,6 +115,7 @@ class PascalVOC(Dataset):
 
         img_batch = []
         target_batch = []
+        ids_batch = []
 
         for img_id in sample_ids:
             img_path = os.path.join(self.dataset_path, 'JPEGImages/%s.jpg' % img_id)
@@ -117,15 +124,18 @@ class PascalVOC(Dataset):
             img_batch.append(img_arr)
 
             target_batch.append(self.get_labels(img_id))
+            ids_batch.append(img_id)
 
         img_batch = np.reshape(img_batch, (-1, self.img_size[0], self.img_size[1], 3))  # TODO: figure out why this line is necessary
         img_batch = preprocess_input(img_batch, data_format='channels_last')
 
         target_batch = np.reshape(target_batch, (-1, self.nb_classes))
+        ids_batch = np.reshape(np.array(ids_batch), (-1, 1))
 
         output['image'] = img_batch
         output['cooc_matrix'] = np.repeat(self.cooc_matrix[None, ...], len(sample_idxs), 0)
         output['multilabel'] = target_batch
+        output['image_id'] = ids_batch
 
         return output
 
@@ -150,3 +160,9 @@ class PascalVOC(Dataset):
             labels = [0 if l == -1 else l for l in labels]
 
         return labels
+
+    def update_targets(self, new_path):
+        '''
+        Update annotations directly
+        '''
+        self.load_samples(filepath=new_path)

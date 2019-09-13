@@ -25,6 +25,6 @@ class MAP(BaseMetric):
         computes the AP for each class and returns it as is
         '''
         # print('type true %s (%s), type pred %s (%s)' % (type(y_true), np.array(y_true).shape, type(y_pred), y_pred.shape))
-        print('there is %s nans' % tf.count_nonzero(tf.is_nan(y_pred)))
+        # print('there is %s nans' % tf.count_nonzero(tf.is_nan(y_pred)))
         return metrics.average_precision_score(y_true[0], y_pred, average=None)
 

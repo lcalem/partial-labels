@@ -1,9 +1,12 @@
 import argparse
 import os
 
+import numpy as np
+
 from tensorflow.keras import backend as K
 
-from data.coco.coco import CocoGenerator
+# from data.coco.coco import CocoGenerator
+from data.coco.coco2 import CocoGenerator
 
 from model import metrics
 from model.networks.baseline import Baseline
@@ -26,7 +29,7 @@ def get_weights_paths(path, folder, epoch, prop):
             if not filename.startswith('weights'):
                 continue
 
-            parts = filename.split('_')
+            parts = filename.replace('.h5', '').split('_')
             if epoch is not 'all' and int(parts[2]) != int(epoch):
                 continue
             if prop is not 'all' and int(parts[1]) != int(prop):
@@ -51,17 +54,13 @@ def extract_folder_prop_epoch(weights_path):
     return exp_folder, prop, epoch
 
 
-def main(path, folder, epoch, prop, config):
+def main(path, folder, epoch, prop, year='2014'):
 
-    config_path = '%s/partial-labels/config/%s.yaml' % (os.environ['HOME'], config)
     data_dir = '%s/datasets/mscoco' % os.environ['HOME']
 
     map_fn = metrics.map.MAP()
-
-    # load val dataset (/!\ LONG)
-    dataset_test = CocoGenerator('val', data_dir, year='2017')
-    print("test data length %s" % len(dataset_test))
-    X_test, Y_test = dataset_test.load_test()
+    # inference batch size : can be fat
+    dataset_test = CocoGenerator(data_dir, 160, 'val', x_keys=['image', 'image_id'], y_keys=['multilabel'], year=year)
 
     # eval for every weigths path
     for weights_path in get_weights_paths(path, folder, epoch, prop):
@@ -69,12 +68,30 @@ def main(path, folder, epoch, prop, config):
 
         # load model
         model = Baseline('%s/partial_experiments/' % os.environ['HOME'], 80, prop)
-        model.load_weights(weights_path, config_file=config_path)
+        model.load_weights(weights_path)
+
+        # prediction
+        y_test_stacked = list()
+        y_pred_stacked = list()
+
+        for i in range(len(dataset_test)):
+            if i % 100 == 0:
+                print('done %s/%s' % (i, len(dataset_test)))
+
+            x_batch, y_batch = dataset_test[i]
+            y_pred = model.predict(x_batch)
+
+            y_test_stacked.append(y_batch[0])
+            y_pred_stacked.append(y_pred)
+
+        y_test = np.vstack(y_test_stacked)
+        y_pred = np.vstack(y_pred_stacked)
+
+        print(y_test.shape)
+        print(y_pred.shape)
 
         # execute mAP measures
-        y_pred = model.predict(X_test)
-        ap_scores = map_fn.compute_separated(Y_test, y_pred)
-        print('ap scores type %s' % type(ap_scores))
+        ap_scores = map_fn.compute_separated([y_test], y_pred)
         map_score = sum(ap_scores) / len(ap_scores)
 
         with open(os.path.join(exp_folder, 'map.csv'), 'a') as f_out:
@@ -87,10 +104,11 @@ def main(path, folder, epoch, prop, config):
         del model
 
 
-# python3 eval.py --config 'coco_baseline50_sgd_448lrs' --path '~/partial_experiments/exp_20190729_1614_baseline/weights_100_020.h5'
-# python3 eval.py --config 'coco_baseline50_sgd_448lrs' --folder '~/partial_experiments/exp_20190729_1614_baseline' --epoch 20 --prop 100
-# python3 eval.py --config 'coco_baseline50_sgd_448lrs' --folder '~/partial_experiments/exp_20190729_1614_baseline' --epoch 20 --prop all
-# python3 eval.py --config 'coco_baseline50_sgd_448lrs' --folder '~/partial_experiments/exp_20190729_1614_baseline' --epoch all --prop all
+# python3 eval.py --path '~/partial_experiments/exp_20190729_1614_baseline/weights_100_020.h5'
+# python3 eval.py --folder '~/partial_experiments/exp_20190729_1614_baseline' --epoch 20 --prop 100
+# python3 eval.py --folder '~/partial_experiments/exp_20190729_1614_baseline' --epoch 20 --prop all
+# python3 eval.py --folder '~/partial_experiments/exp_20190729_1614_baseline' --epoch all --prop all
+# python3 eval.py --folder '/home/caleml/partial_experiments/exp_20190911_1903_baseline' --epoch 20 --prop 100
 if __name__ == '__main__':
     '''
     TODO: remove config option when config saving/loading is fixed
@@ -100,7 +118,7 @@ if __name__ == '__main__':
     parser.add_argument('--folder', help='folder to find the weiths path(s)')
     parser.add_argument('--epoch', help='specific epoch for weights')
     parser.add_argument('--prop', help='specific prop for weights')
-    parser.add_argument('--config', required=True, help='config file name (to be removed soon)')
+    parser.add_argument('--stream', help='stream the val dataset or load everything')
 
     args = parser.parse_args()
-    main(args.path, args.folder, args.epoch, args.prop, args.config)
+    main(args.path, args.folder, args.epoch, args.prop)
