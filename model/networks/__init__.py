@@ -1,3 +1,5 @@
+import os
+import yaml
 
 from tensorflow.keras.models import load_model
 from tensorflow.keras.optimizers import RMSprop, Adam, SGD
@@ -5,8 +7,9 @@ from tensorflow.keras.optimizers import RMSprop, Adam, SGD
 from model.utils import log
 from config.config import cfg
 
-from experiments.launch_utils import parse_options_file
 from config import config_utils
+
+from pprint import pprint
 
 
 class BaseModel(object):
@@ -21,17 +24,22 @@ class BaseModel(object):
     def load(self, checkpoint_path, custom_objects=None):
         self.model = load_model(checkpoint_path, custom_objects=custom_objects)
 
-    def load_weights(self, weights_path, by_name=False, config_file=None):
-        if config_file:
-            self.load_config(config_file)
+    def load_weights(self, weights_path, by_name=False, load_config=True):
+        if load_config:
+            folder = os.path.abspath(os.path.dirname(weights_path))
+            self.load_config(os.path.join(folder, 'config.yaml'))
 
         self.build()
         self.model.load_weights(weights_path, by_name=by_name)
 
-    def load_config(self, config_file):
+    def load_config(self, config_path):
         print("Loading options")
-        options = parse_options_file(config_file)
-        config_utils.update_config(options)
+        # options = parse_options_file(config_file)
+        with open(config_path, 'r') as f_in:
+            loaded_conf = yaml.load(f_in)
+
+        config_utils.update_config(loaded_conf)
+        pprint(cfg)
 
     def build(self):
         raise NotImplementedError

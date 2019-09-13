@@ -48,16 +48,17 @@ class Baseline(BaseModel):
 
         self.build_classifier()
 
-        inp = Input(shape=self.input_shape, name='image_input')
+        inp_img = Input(shape=self.input_shape, name='image_input')
+        inp_ids = Input(shape=(1,), name='ids_input')
 
         # classifier
-        x = self.cls_model(inp)
+        x = self.cls_model(inp_img)
 
         # dense + sigmoid for multilabel classification
         x = GlobalAveragePooling2D()(x)
         output = Dense(self.n_classes, activation='sigmoid')(x)
 
-        self.model = Model(inputs=inp, outputs=output)
+        self.model = Model(inputs=[inp_img, inp_ids], outputs=output)
         self.log('Outputs shape %s' % str(self.model.output_shape))
 
         optimizer = self.build_optimizer()

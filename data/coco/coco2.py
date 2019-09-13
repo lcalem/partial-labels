@@ -15,7 +15,7 @@ NB_CLASSES = 80
 
 class CocoGenerator(Dataset):
 
-    supported_keys = ('image', 'multilabel')
+    supported_keys = ('image', 'multilabel', 'image_id')
     supported_modes = ('train', 'val')
     nb_classes = NB_CLASSES
 
@@ -76,6 +76,8 @@ class CocoGenerator(Dataset):
             return self.img_size
         elif key == 'multilabel':
             return (self.nb_classes, )
+        elif key == 'image_id':
+            return (1, )
         else:
             raise Exception('Unknown key %s' % key)
 
@@ -88,6 +90,7 @@ class CocoGenerator(Dataset):
 
         img_batch = []
         target_batch = []
+        ids_batch = []
 
         for img_id in sample_ids:
             img = image.load_img(self.get_img_path(int(img_id)), grayscale=False, target_size=(self.img_size[0], self.img_size[1]))
@@ -95,14 +98,17 @@ class CocoGenerator(Dataset):
             img_batch.append(img_arr)
 
             target_batch.append(self.get_labels(img_id))
+            ids_batch.append(img_id)
 
         img_batch = np.reshape(img_batch, (-1, self.img_size[0], self.img_size[1], 3))  # TODO: figure out why this line is necessary
         img_batch = preprocess_input(img_batch, data_format='channels_last')
 
         target_batch = np.reshape(target_batch, (-1, self.nb_classes))
+        ids_batch = np.reshape(np.array(ids_batch), (-1, 1))
 
         output['image'] = img_batch
         output['multilabel'] = target_batch
+        output['image_id'] = ids_batch
 
         return output
 

@@ -5,6 +5,8 @@ import yaml
 
 from config.config import cfg
 
+from model.utils import log
+
 from pprint import pprint
 
 
@@ -56,7 +58,7 @@ def exp_init(cmd, exps_folder=None, exp_name=None):
     name_suffix = ('_%s' % exp_name) if exp_name else ''
     model_folder = '%s/exp_%s_%s%s' % (exps_folder, datetime.datetime.now().strftime("%Y%m%d_%H%M"), cfg.ARCHI.NAME, name_suffix)
     os.makedirs(model_folder)
-    print("Conducting experiment for %s epochs in folder %s" % (cfg.TRAINING.N_EPOCHS, model_folder))
+    log.printcn(log.OKBLUE, "Conducting experiment for %s epochs in folder %s" % (cfg.TRAINING.N_EPOCHS, model_folder))
 
     # config
     config_path = os.path.join(model_folder, 'config.yaml')
