@@ -82,6 +82,7 @@ class PriorModel(BaseModel):
 
     def load_matrix(self):
 
+        # matrix_filename = 'cooc_matrix_trainval_partial_100_1.npy'
         matrix_filename = 'cooc_matrix_trainval_partial_100_1.npy'
         matrix_filepath = os.path.join(cfg.DATASET.PATH, 'Annotations', matrix_filename)
         return np.load(matrix_filepath)

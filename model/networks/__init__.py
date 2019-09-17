@@ -60,7 +60,7 @@ class BaseModel(object):
             kwargs['max_queue_size'] = cfg.MULTIP.MAX_QUEUE_SIZE
             kwargs['workers'] = cfg.MULTIP.N_WORKERS
 
-        if dataset_val:
+        if dataset_val and not cfg.TRAINING.SKIP_VAL:
             kwargs['validation_data'] = dataset_val
 
         self.model.fit_generator(data_tr, **kwargs)

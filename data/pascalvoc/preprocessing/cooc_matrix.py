@@ -31,7 +31,7 @@ def create_cooc(filepath):
 
     print(cooc)
 
-    print("total", total_ones)
+    print("total ones", total_ones)
     # saving
     save_file = filepath.replace('annotations_multilabel', 'cooc_matrix').replace('.csv', '')
     np.save(save_file, cooc)
