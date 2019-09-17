@@ -136,7 +136,7 @@ class Launcher():
         elif cfg.DATASET.NAME == 'coco':
             dataset = CocoGenerator(self.data_dir, batch_size, mode, x_keys=['image', 'image_id'], y_keys=['multilabel'], year=cfg.DATASET.YEAR, p=p)
         elif cfg.DATASET.NAME == 'ircad_lps':
-            dataset = IrcadLPS(self.data_dir, batch_size, mode, x_keys=['image'], y_keys=['segmentation'], split_name='split_1', valid_split_number=0, p=p)
+            dataset = IrcadLPS(self.data_dir, batch_size, mode, x_keys=['image', 'ambiguity'], y_keys=['segmentation'], split_name='split_1', valid_split_number=0, p=p)
         else:
             raise Exception('Unknown dataset %s' % cfg.DATASET.NAME)
 

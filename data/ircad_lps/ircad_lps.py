@@ -12,7 +12,7 @@ NB_CLASSES = 4 # Background, Liver, Pancreas, Stomach
 
 class IrcadLPS(Dataset):
 
-    supported_keys = ('image', 'segmentation')
+    supported_keys = ('image', 'segmentation', 'ambiguity')
     supported_modes = ('train', 'valid')
     nb_classes = NB_CLASSES
 
@@ -78,6 +78,8 @@ class IrcadLPS(Dataset):
             return self.img_size
         elif key == 'segmentation':
             return self.img_size
+        elif key == 'ambiguity':
+            return self.img_size
         else:
             raise Exception('Unknown key {}'.format(key))
 
@@ -89,29 +91,48 @@ class IrcadLPS(Dataset):
         sample_ids = [self.sample_ids[i] for i in sample_idxs]
 
         img_batch = []
+        ambiguity_batch = []
         target_batch = []
 
         for img_id in sample_ids:
+
+            missing_organs = np.array([1, 1, 1])
+            if self.mode == 'train':
+                target_path = os.path.join(self.annotations_path, str(self.p), img_id)
+                missing_organs = np.load(os.path.join(self.missing_annotations_path, str(self.p), img_id))
+            elif self.mode == 'valid':
+                target_path = os.path.join(self.annotations_path, '100', img_id)
+            else:
+                raise Exception('Wrong mode: {}'.format(self.mode))
+            
+            # Image
             img_path = os.path.join(self.images_path, img_id)
             img = np.load(img_path)
             img = np.moveaxis(img, 0, -1)
             img = tf.keras.applications.resnet50.preprocess_input(img)
             img_batch.append(img)
 
-            if self.mode == 'train':
-                target_path = os.path.join(self.annotations_path, str(self.p), img_id)
-            elif self.mode == 'valid':
-                target_path = os.path.join(self.annotations_path, '100', img_id)
-            else:
-                raise Exception('Wrong mode: {}'.format(self.mode))
+            # Annotation
             target = np.load(target_path)
             target = tf.keras.utils.to_categorical(target, self.nb_classes)
             target_batch.append(target)
 
+            # Ambiguity map
+            ambiguity_map = np.zeros_like(target, dtype=np.float32)
+            ambiguity_map[:,:,0] = 1.0
+            for i, kept in enumerate(missing_organs):
+                if kept == 1:
+                    ambiguity_map[:,:,i+1] = 1.0
+
+            ambiguity_batch.append(ambiguity_map)
+            
+            
         img_batch = np.reshape(img_batch, (-1, self.img_size[0], self.img_size[1], 3))
+        ambiguity_batch = np.reshape(ambiguity_batch, (-1, self.img_size[0], self.img_size[1], self.nb_classes))
         target_batch = np.reshape(target_batch, (-1, self.img_size[0], self.img_size[1], self.nb_classes))
 
         output['image'] = img_batch
+        output['ambiguity'] = ambiguity_batch
         output['segmentation'] = target_batch
 
         return output
