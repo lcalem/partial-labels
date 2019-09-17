@@ -29,8 +29,13 @@ class DiceScore(tf.keras.metrics.Metric):
         self.pred_sum = self.add_weight(name='pred_sum', initializer='zeros')
 
     def update_state(self, y_true, y_pred, sample_weight=None):
+        background_prob, liver_prob, pancreas_prob, stomach_prob = tf.unstack(y_pred, num=4, axis=3)
+        # Assemble prob threshold with organs probabilities
+        organs_prob = tf.stack([tf.ones_like(background_prob, dtype=tf.float32)*0.5, liver_prob, pancreas_prob, stomach_prob], axis=3, name='organs_prob')
+        # Keep the maximum probabilities as the predicted value
+
         y_true = tf.math.equal(tf.argmax(y_true, axis=-1), self.class_id)
-        y_pred = tf.math.equal(tf.argmax(y_pred, axis=-1), self.class_id)
+        y_pred = tf.math.equal(tf.argmax(organs_prob, axis=-1), self.class_id)
 
         y_true = tf.cast(y_true, dtype=tf.float32)
         y_pred = tf.cast(y_pred, dtype=tf.float32)
@@ -63,19 +68,21 @@ class WeightedCrossEntropy(tf.keras.losses.Loss):
 
 
 class WeightedCrossEntropy_v2(tf.keras.losses.Loss):
-    def __init__(self, class_weights):
+    def __init__(self, ambiguity_map, class_weights):
         super().__init__()
         self.name = 'weighted_cross_entropy'
         self.class_weights = tf.constant(class_weights, shape=(4,), dtype=tf.float32, name='class_weights')
+        self.ambiguity_map = ambiguity_map
     
     def call(self, y_true, y_pred):
-        y_true = tf.reshape(y_true, shape=(-1, 4))
-        y_pred = tf.reshape(y_pred, shape=(-1, 4))
-    
-        weights = tf.reduce_sum(self.class_weights * y_true, axis=-1)
-        unweighted_cross_entropy = tf.keras.losses.categorical_crossentropy(y_true, y_pred)
-        cross_entropy = tf.reduce_mean(unweighted_cross_entropy * weights)
-        return cross_entropy
+        #y_true = tf.reshape(y_true, shape=(-1, 1))
+        #y_pred = tf.reshape(y_pred, shape=(-1, 1))
+        #ambiguity = tf.reshape(self.ambiguity_map, shape=(-1, 1))
+        
+        #weights = tf.reduce_sum(self.class_weights * y_true, axis=-1)
+        unweighted_cross_entropy = tf.keras.losses.binary_crossentropy(y_true*self.ambiguity_map, y_pred*self.ambiguity_map)
+        #cross_entropy = tf.reduce_mean(unweighted_cross_entropy * weights)
+        return tf.reduce_mean(unweighted_cross_entropy)
 
 
 class SegBaseline(BaseModel):
@@ -86,24 +93,24 @@ class SegBaseline(BaseModel):
         self.p = p
         self.n_classes = n_classes
         self.input_shape = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.N_CHANNELS)
+        self.output_shape = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, self.n_classes)
         self.verbose = cfg.VERBOSE
 
         print("Init input_shape %s" % str(self.input_shape))
 
     def build(self):
 
+        ambiguity_map = tf.keras.Input(shape=self.output_shape, name='ambiguity_map')
+        
         resnet = ResNet50(include_top=False, weights='imagenet', input_shape=self.input_shape)
         
         x = resnet.output
         x = tf.keras.layers.Conv2D(self.n_classes, 1, activation=None)(x)
         x = tf.keras.layers.UpSampling2D(size=(32,32), interpolation='bilinear')(x)
-        #proba = tf.keras.layers.Activation('relu')(x)
-        #x = tf.keras.layers.Conv2D(self.n_classes, 3, activation=None, padding='same')(x)
-        #x = tf.keras.layers.Lambda(lambda x: tf.image.resize_bilinear(x, [self.input_shape[0], self.input_shape[1]]))(x)
-        
-        proba = tf.keras.layers.Activation('softmax')(x)
 
-        self.model = Model(inputs=resnet.inputs, outputs=proba, name='cls_model')
+        proba = tf.keras.layers.Activation('sigmoid')(x)
+
+        self.model = Model(inputs=[resnet.inputs, ambiguity_map], outputs=proba, name='cls_model')
 
         self.log('Outputs shape %s' % str(self.model.output_shape))
 
@@ -116,9 +123,11 @@ class SegBaseline(BaseModel):
         
         #loss = WeightedCrossEntropy([1.0, 3.0, 50.0, 30.0])
         #loss = WeightedCrossEntropy_v2([1.011276563, 144.6087607, 1090.794364, 301.3094671])
-        loss = WeightedCrossEntropy_v2([0.04292439486, 0.6141659478, 5.935304885, 2.689794809])
+        loss = WeightedCrossEntropy_v2(ambiguity_map, [0.04292439486, 0.6141659478, 5.935304885, 2.689794809])
         #loss = WeightedCrossEntropy([0.004869942426, 2.160194604, 3.037742885, 2.479012777])
         #loss = tf.keras.losses.CategoricalCrossentropy()
+
+        #loss = tf.keras.losses.BinaryCrossentropy()
         
         self.model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
