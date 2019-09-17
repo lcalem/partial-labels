@@ -75,8 +75,8 @@ class Launcher():
         5. train
         '''
 
-        self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE, p=p)
-        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, y_keys=['multilabel'], batch_size=cfg.BATCH_SIZE)
+        self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, batch_size=cfg.BATCH_SIZE, p=p)
+        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size=cfg.BATCH_SIZE)
 
         # callbacks
         cb_list = self.build_callbacks(p)
@@ -116,8 +116,8 @@ class Launcher():
             cb_list = self.build_callbacks(p, relabel_step=relabel_step)
 
             # actual training
-            # self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list, dataset_val=self.dataset_test)
-            self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list)
+            self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list, dataset_val=self.dataset_test)
+            # self.model.train(self.dataset_train, steps_per_epoch=10, cb_list=cb_list)
 
             # relabeling
             self.relabel_dataset(relabel_step, p)
@@ -134,7 +134,7 @@ class Launcher():
         if cfg.DATASET.NAME == 'pascalvoc':
             dataset = PascalVOC(self.data_dir, batch_size, mode, x_keys=['image', 'image_id'], y_keys=['multilabel'], p=p)
         elif cfg.DATASET.NAME == 'coco':
-            dataset = CocoGenerator(self.data_dir, batch_size, mode, x_keys=['image'], y_keys=['multilabel'], year=cfg.DATASET.YEAR, p=p)
+            dataset = CocoGenerator(self.data_dir, batch_size, mode, x_keys=['image', 'image_id'], y_keys=['multilabel'], year=cfg.DATASET.YEAR, p=p)
         elif cfg.DATASET.NAME == 'ircad_lps':
             dataset = IrcadLPS(self.data_dir, batch_size, mode, x_keys=['image'], y_keys=['segmentation'], split_name='split_1', valid_split_number=0, p=p)
         else:
@@ -174,11 +174,11 @@ class Launcher():
         log.printcn(log.OKBLUE, 'Building callbacks')
         cb_list = list()
 
-        # tensorboard
-        logs_folder = os.environ['HOME'] + '/partial_experiments/tensorboard/' + self.exp_folder.split('/')[-1] + '/prop%s' % prop
-        log.printcn(log.OKBLUE, 'Tensorboard log folder %s' % logs_folder)
-        tensorboard = TensorBoard(log_dir=os.path.join(logs_folder, 'tensorboard'))
-        cb_list.append(tensorboard)
+        # # tensorboard
+        # logs_folder = os.environ['HOME'] + '/partial_experiments/tensorboard/' + self.exp_folder.split('/')[-1] + '/prop%s' % prop
+        # log.printcn(log.OKBLUE, 'Tensorboard log folder %s' % logs_folder)
+        # tensorboard = TensorBoard(log_dir=os.path.join(logs_folder, 'tensorboard'))
+        # cb_list.append(tensorboard)
 
         # Validation callback
         if cfg.CALLBACK.VAL_CB is not None:
@@ -282,6 +282,7 @@ class Launcher():
 # python3 launch.py -o pv_partial50_sgd_448lrs -g 3 -p 90,70,50,30,10
 # python3 launch.py -o coco14_baseline_lrs_nomap -g 3 -p 90
 # python3 launch.py -o pv_relabel -g 3 -p 50
+# python3 launch.py -o coco14_baseline -g 0 -p 100
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
