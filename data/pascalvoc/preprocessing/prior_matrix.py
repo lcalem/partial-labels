@@ -26,6 +26,7 @@ def create_prior(dataset_path):
         for line in f_in:
             parts = [int(x) for x in line.strip().split(',')]
 
+            # ones
             ones_idx = [i - 1 for i in range(len(parts[1:]) + 1) if parts[i] == 1]
             ones_superclasses = set([id2superclass[idx] for idx in ones_idx])
 
@@ -33,21 +34,32 @@ def create_prior(dataset_path):
                 other_classes = '_'.join(['%s%s' % (sc[0], (1 if sc in ones_superclasses else 0)) for sc in classes_order if sc != superclass])
                 cooc_superclass['%s1' % superclass[0]][other_classes] += 1
 
+            # zeros
+            zeros_idx = [i - 1 for i in range(len(parts[1:]) + 1) if parts[i] == 0]
+            zeros_superclasses = set([id2superclass[idx] for idx in zeros_idx])
+
+            for superclass in zeros_superclasses:
+                other_classes = '_'.join(['%s%s' % (sc[0], (1 if sc in zeros_superclasses else 0)) for sc in classes_order if sc != superclass])
+                cooc_superclass['%s0' % superclass[0]][other_classes] += 1
+
     pprint(cooc_superclass)
 
     # normalization
-    for key, other in cooc_superclass.items():
+    for letter in ['a', 'i', 'p', 'v']:
         sum_marginal = 0
-        for other_name, other_count in other.items():
-            sum_marginal += other_count
 
-        for other_name, other_count in other.items():
-            other[other_name] /= sum_marginal
+        for number in ['0', '1']:
+            for other_name, other_count in cooc_superclass['%s%s' % (letter, number)].items():
+                sum_marginal += other_count
+
+        for number in ['0', '1']:
+            for other_name, other_count in cooc_superclass['%s%s' % (letter, number)].items():
+                cooc_superclass['%s%s' % (letter, number)][other_name] /= sum_marginal
 
     pprint(cooc_superclass)
 
     # saving
-    save_file = filepath.replace('annotations_multilabel', 'prior_matrix').replace('.csv', '.json')
+    save_file = filepath.replace('annotations_multilabel', 'prior_matrix2').replace('.csv', '.json')
     with open(save_file, 'w+') as f_json:
         json.dump(cooc_superclass, f_json)
 
