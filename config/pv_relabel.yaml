@@ -9,6 +9,7 @@ dataset:
     test: test
 relabel:
     active: true
+    mode: multilabel
     steps: 3
     prior: conditional
     prior_path: /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/Annotations/prior_matrix2_trainval_partial_$PROP_1.json
