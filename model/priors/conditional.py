@@ -40,7 +40,7 @@ class ConditionalPrior(BasePrior):
     def compute_pk(self, y_true):
         '''
         y_true: (BS, K)
-        output ok: (BS, K)
+        output ok: (BS, K, 2)
 
         For each line (each example, we compute the example pk which is of size K)
         1 - for each value of the pk (one scalar), we compute the 'other key', which is of the form 'a0_i1_v1'
@@ -48,8 +48,9 @@ class ConditionalPrior(BasePrior):
 
         TODO:
         '''
-        pk = np.zeros_like(y_true, dtype=np.float64)
-        assert pk.shape == (cfg.BATCH_SIZE, self.nb_classes), 'wrong pk shape %s' % str(pk.shape)
+
+        pk = np.zeros(y_true.shape + (2,) , dtype=np.float64)
+        assert pk.shape == (cfg.BATCH_SIZE, self.nb_classes, 2), 'wrong pk shape %s' % str(pk.shape)
 
         for i, example in enumerate(y_true):
             assert example.shape == (self.nb_classes,), 'wrong example shape %s' % str(example.shape)
@@ -59,9 +60,11 @@ class ConditionalPrior(BasePrior):
                 # get the keys
                 class_letter, class_nb, context_key = self.get_keys(j, onehot_example)
 
-                # retrieve the conditional probability
-                prob = self.get_conditional(class_letter, class_nb, context_key)
-                pk[i][j] = prob
+                # retrieve the conditional probability + normalization
+                prob0 = self.get_conditional(class_letter, 0, context_key)
+                prob1 = self.get_conditional(class_letter, 1, context_key)
+                pk[i][j][0] = prob0 / (prob0 + prob1)
+                pk[i][j][1] = prob1 / (prob0 + prob1)
 
         return pk
 
@@ -96,9 +99,6 @@ class ConditionalPrior(BasePrior):
     def get_conditional(self, class_letter, class_nb, context_key):
         '''
         '''
-        if class_nb == 0:
-            return 1 - self.get_conditional(class_letter, 1, context_key)
-
         class_key = '%s%s' % (class_letter, class_nb)
         assert class_key in self.prior_matrix, 'something got very wrong with the prior matrix (key %s)' % class_key
 
@@ -120,10 +120,15 @@ class ConditionalPrior(BasePrior):
         - product: just element wise product of the visual info (sk) and the prior (pk)
         - sigmoid
         - softmax
-        '''
-        return sk * pk
 
-    def pick_relabel(self, yk, y_true):
+        pk (BS, K, 2)
+        sk (BS, K)
+        '''
+        ones_yk = sk * pk[:, :, 1]
+        zeros_yk = (1 - sk) * pk[:, :, 0]
+        return ones_yk / (ones_yk + zeros_yk)
+
+    def pick_relabel(self, y_pred, yk, y_true):
         '''
         yk: prior-weighted outputs
         y_true: true batch (with zeros where the label is missing)
@@ -139,7 +144,7 @@ class ConditionalPrior(BasePrior):
         relabel_batch = np.copy(y_true)
 
         # find and sort the relevant values of the outputs
-        relevant_yk = np.where(y_true == 0, yk, 0)   # consider only the values for missing labels
+        relevant_yk = np.where((y_true == 0) & (y_pred > 0.5), yk, 0)   # consider only the values for missing labels and for which the initial prediction is > 0.5
         sorted_indexes = np.argsort(relevant_yk, axis=None)   # the indexes are flattened
         sorted_values = [relevant_yk[i // self.nb_classes][i % self.nb_classes] for i in sorted_indexes]
 

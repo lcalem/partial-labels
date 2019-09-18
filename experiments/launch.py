@@ -236,7 +236,7 @@ class Launcher():
                 p_k = self.prior.compute_pk(y_batch[0])
 
                 y_k = self.prior.combine(y_pred, p_k)
-                relabeling, nb_added = self.prior.pick_relabel(y_k, y_batch[0])  # (BS, K)
+                relabeling, nb_added = self.prior.pick_relabel(y_pred, y_k, y_batch[0])  # (BS, K)
                 total_added += nb_added
 
                 # print('y batch')
