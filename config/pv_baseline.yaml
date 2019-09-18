@@ -14,5 +14,6 @@ training:
     n_epochs: 20
     optimizer: sgd
     start_lr: 0.01
+    skip_val: true
 callback:
     val_cb: map
