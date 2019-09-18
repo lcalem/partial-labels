@@ -44,9 +44,10 @@ def compare_relabel_dataset(dataset_original, dataset_relabel):
                 count_zeros += 1
                 if relabel_data[img_id][i] != 0:
                     count_relabeled += 1
-                if relabel_data[img_id][i] == gt_data[img_id][i]:
-                    count_correct += 1
+                    if relabel_data[img_id][i] == gt_data[img_id][i]:
+                        count_correct += 1
             else:
+                # check we didn't relabel data that wasn't zero
                 assert gt_data[img_id][i] == val
                 assert relabel_data[img_id][i] == val
 
@@ -55,5 +56,6 @@ def compare_relabel_dataset(dataset_original, dataset_relabel):
 
 
 # python3 compare_relabel.py /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/Annotations/annotations_multilabel_trainval_partial_50_1.csv /home/caleml/partial_experiments/exp_20190911_1812_baseline/relabeling/relabeling_0_50p.csv
+# python3 compare_relabel.py /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/Annotations/annotations_multilabel_trainval_partial_50_1.csv /home/caleml/partial_experiments/exp_20190918_1535_baseline/relabeling/relabeling_0_50p.csv
 if __name__ == '__main__':
     compare_relabel_dataset(sys.argv[1], sys.argv[2])

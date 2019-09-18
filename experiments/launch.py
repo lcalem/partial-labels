@@ -21,7 +21,7 @@ from model.callbacks.save_callback import SaveModel
 from model.callbacks.scheduler import lr_scheduler
 from model.utils import log
 
-from model import priors
+from model import relabel
 
 from config.config import cfg
 
@@ -107,7 +107,7 @@ class Launcher():
         # model
         self.build_model(self.dataset_train.nb_classes, p)
 
-        self.prior = self.load_prior(cfg.RELABEL.PRIOR, p)
+        self.relabelator = self.load_relabelator(p)
 
         for relabel_step in range(cfg.RELABEL.STEPS):
             log.printcn(log.OKBLUE, '\nDoing relabel step %s' % (relabel_step))
@@ -120,7 +120,7 @@ class Launcher():
             # self.model.train(self.dataset_train, steps_per_epoch=10, cb_list=cb_list)
 
             # relabeling
-            self.relabel_dataset(relabel_step, p)
+            self.relabel_dataset(relabel_step)
 
         # cleaning (to release memory before next launch)
         K.clear_session()
@@ -156,11 +156,10 @@ class Launcher():
 
         self.model.build()
 
-    def load_prior(self, name, p):
-        if name == 'conditional':
-            prior_path = cfg.RELABEL.PRIOR_PATH
-            prior_path = prior_path.replace('$PROP', str(p))
-            return priors.ConditionalPrior(prior_path)
+    def load_relabelator(self, p):
+
+        if cfg.RELABEL.NAME == 'relabel_prior':
+            return relabel.PriorRelabeling(self.exp_folder, p)
 
     def build_callbacks(self, prop, relabel_step=None):
         '''
@@ -210,7 +209,7 @@ class Launcher():
         else:
             raise Exception('Invalid validation callback %s' % cb_name)
 
-    def relabel_dataset(self, relabel_step, p):
+    def relabel_dataset(self, relabel_step):
         '''
         Use model to make predictions
         Use predictions to relabel elements (create a new relabeled csv dataset)
@@ -218,60 +217,18 @@ class Launcher():
         '''
         log.printcn(log.OKBLUE, '\nDoing relabeling inference step %s' % relabel_step)
 
-        # save new targets as file
-        targets_path = os.path.join(self.exp_folder, 'relabeling', 'relabeling_%s_%sp.csv' % (relabel_step, p))
-        os.makedirs(os.path.dirname(targets_path), exist_ok=True)
+        self.relabelator.init_step(relabel_step)
 
-        total_added = 0
-        seen_keys = set()
+        # predict
+        for i in range(len(self.dataset_train)):
+            x_batch, y_batch = self.dataset_train[i]
 
-        with open(targets_path, 'w+') as f_relabel:
+            y_pred = self.model.predict(x_batch)   # TODO not the logits!!!!!!!!
 
-            # predict
-            for i in range(len(self.dataset_train)):
-                x_batch, y_batch = self.dataset_train[i]
+            self.relabelator.relabel(x_batch, y_pred, y_batch)
 
-                y_pred = self.model.predict(x_batch)   # TODO not the logits!!!!!!!!
-                # print('shape of y_pred %s' % str(y_pred.shape))
-                p_k = self.prior.compute_pk(y_batch[0])
-
-                y_k = self.prior.combine(y_pred, p_k)
-                relabeling, nb_added = self.prior.pick_relabel(y_pred, y_k, y_batch[0])  # (BS, K)
-                total_added += nb_added
-
-                # print('y batch')
-                # print(y_batch)
-
-                # print('y pred')
-                # print(y_pred)
-
-                # print('pk')
-                # print(p_k)
-
-                # print('y_k')
-                # print(y_k)
-
-                # print('relabeling')
-                # print(relabeling)
-
-                # write batch to relabel csv
-                for i in range(len(relabeling)):
-                    parts = relabeling[i]
-                    img_id = x_batch[1][i][0]
-
-                    # for last batch we have duplicates to fill the remaining batch size, we don't want to write those
-                    if img_id not in seen_keys:
-                        relabel_line = '%s,%s,%s\n' % (img_id, str(parts[0]), ','.join([str(elt) for elt in parts[1:]]))
-                        f_relabel.write(relabel_line)
-
-                    seen_keys.add(img_id)
-
-        relabel_logpath = os.path.join(self.exp_folder, 'relabeling', 'log_relabeling.csv')
-        with open(relabel_logpath, 'a') as f_log:
-            f_log.write('%s,%s,%s\n' % (p, relabel_step, nb_added))
-
-        log.printcn(log.OKBLUE, '\tAdded %s labels during relabeling, logging into %s' % (total_added, relabel_logpath))
-        log.printcn(log.OKBLUE, '\tNew dataset path %s' % (targets_path))
+        self.relabelator.finish_step(relabel_step)
+        targets_path = self.relabelator.targets_path
 
         # update dataset
         self.dataset_train.update_targets(targets_path)
@@ -281,7 +238,8 @@ class Launcher():
 # python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 90,70,50,30,10
 # python3 launch.py -o pv_partial50_sgd_448lrs -g 3 -p 90,70,50,30,10
 # python3 launch.py -o coco14_baseline_lrs_nomap -g 3 -p 90
-# python3 launch.py -o pv_relabel -g 3 -p 50
+# python3 launch.py -o pv_relabel -g 0 -p 50
+# python3 launch.py -o relabel_test -g 0 -p 50
 # python3 launch.py -o coco14_baseline -g 0 -p 100
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
