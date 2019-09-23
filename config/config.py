@@ -42,6 +42,7 @@ cfg.CALLBACK.VAL_CB = None
 cfg.TRAINING = edict()
 cfg.TRAINING.OPTIMIZER = "adam"
 cfg.TRAINING.START_LR = 0.0001
+cfg.TRAINING.STEPS_PER_EPOCH = None
 
 # multiprocessing
 cfg.MULTIP = edict()

@@ -108,7 +108,7 @@ class Launcher():
         # model
         self.build_model(self.dataset_train.nb_classes, p)
 
-        self.relabelator = self.load_relabelator(p)
+        self.relabelator = self.load_relabelator(p, self.dataset_train.nb_classes)
 
         for relabel_step in range(cfg.RELABEL.STEPS):
             log.printcn(log.OKBLUE, '\nDoing relabel step %s' % (relabel_step))
@@ -117,7 +117,8 @@ class Launcher():
             cb_list = self.build_callbacks(p, relabel_step=relabel_step)
 
             # actual training
-            self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list, dataset_val=self.dataset_test)
+            steps_per_epoch = len(self.dataset_train) if not cfg.TRAINING.STEPS_PER_EPOCH else cfg.TRAINING.STEPS_PER_EPOCH
+            self.model.train(self.dataset_train, steps_per_epoch=steps_per_epoch, cb_list=cb_list, dataset_val=self.dataset_test)
             # self.model.train(self.dataset_train, steps_per_epoch=10, cb_list=cb_list)
 
             # relabeling
@@ -157,12 +158,12 @@ class Launcher():
 
         self.model.build()
 
-    def load_relabelator(self, p):
+    def load_relabelator(self, p, nb_classes):
 
         if cfg.RELABEL.NAME == 'relabel_prior':
-            return relabel.PriorRelabeling(self.exp_folder, p)
+            return relabel.PriorRelabeling(self.exp_folder, p, nb_classes)
         elif cfg.RELABEL.NAME == 'relabel_sk':
-            return relabel.BaselineRelabeling(self.exp_folder, p)
+            return relabel.BaselineRelabeling(self.exp_folder, p, nb_classes)
 
     def build_callbacks(self, prop, relabel_step=None):
         '''
@@ -241,8 +242,8 @@ class Launcher():
 # python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 90,70,50,30,10
 # python3 launch.py -o pv_partial50_sgd_448lrs -g 3 -p 90,70,50,30,10
 # python3 launch.py -o coco14_baseline_lrs_nomap -g 3 -p 90
-# python3 launch.py -o pv_relabel -g 0 -p 50
-# python3 launch.py -o relabel_test -g 0 -p 50
+# python3 launch.py -o pv_relabel_baseline -g 1 -p 50
+# python3 launch.py -o relabel_test -g 1 -p 50
 # python3 launch.py -o coco14_baseline -g 0 -p 100
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

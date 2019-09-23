@@ -20,14 +20,14 @@ class ConditionalPrior(BasePrior):
     - vehicle
     '''
 
-    def __init__(self, matrix_path, nb_classes=20, method='product'):
+    def __init__(self, matrix_path, nb_classes, method='product'):
 
         class_info = load_ids()
         self.id2superclass = {v['id']: v['superclass'] for v in class_info.values()}
 
         self.prior_matrix = self.load_matrix(matrix_path)
 
-        self.nb_classes = 20
+        self.nb_classes = nb_classes
 
         self.threshold = 0.5
         self.combination_method = method
