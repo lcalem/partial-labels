@@ -1,5 +1,6 @@
 import argparse
 import os
+import shutil
 import sys
 
 from pprint import pprint
@@ -160,6 +161,8 @@ class Launcher():
 
         if cfg.RELABEL.NAME == 'relabel_prior':
             return relabel.PriorRelabeling(self.exp_folder, p)
+        elif cfg.RELABEL.NAME == 'relabel_sk':
+            return relabel.BaselineRelabeling(self.exp_folder, p)
 
     def build_callbacks(self, prop, relabel_step=None):
         '''
@@ -225,7 +228,7 @@ class Launcher():
 
             y_pred = self.model.predict(x_batch)   # TODO not the logits!!!!!!!!
 
-            self.relabelator.relabel(x_batch, y_pred, y_batch)
+            self.relabelator.relabel(x_batch, y_batch, y_pred)
 
         self.relabelator.finish_step(relabel_step)
         targets_path = self.relabelator.targets_path
@@ -260,5 +263,10 @@ if __name__ == '__main__':
 
     launcher = Launcher(exp_folder, percent=args.percent)
     launcher.launch()
+
+    # cleanup if needed (test folders)
+    if cfg.CLEANUP is True:
+        log.printcn(log.OKBLUE, 'Cleaning folder %s' % (exp_folder))
+        shutil.rmtree(exp_folder)
 
 
