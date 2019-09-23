@@ -32,7 +32,9 @@ class PriorRelabeling(Relabelator):
 
         self.f_relabel = open(self.targets_path, 'w+')
 
-    def finish_step(self, ):
+    def finish_step(self, relabel_step):
+        assert relabel_step == self.relabel_step
+
         relabel_logpath = os.path.join(self.exp_folder, 'relabeling', 'log_relabeling.csv')
         with open(relabel_logpath, 'a') as f_log:
             f_log.write('%s,%s,%s\n' % (self.p, self.relabel_step, self.total_added))
@@ -43,6 +45,15 @@ class PriorRelabeling(Relabelator):
         self.f_relabel.close()
 
     def relabel(self, x_batch, y_batch, y_pred):
+        '''
+        y_pred: (1, batch_size, K) -> have to take y_pred[0]
+        x_batch is used for image ids
+
+        Steps for relabeling:
+        - compute the relevant prior given the ground truth
+        - combine the prior with the predictions (-> y_k)
+        - Use this y_k and the original predictions y_pred to picj the relabeled examples
+        '''
         # print('shape of y_pred %s' % str(y_pred.shape))
         p_k = self.prior.compute_pk(y_batch[0])
 
