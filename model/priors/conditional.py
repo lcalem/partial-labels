@@ -48,8 +48,9 @@ class ConditionalPrior(BasePrior):
 
         TODO:
         '''
+        y_true = np.asarray(y_true)
 
-        pk = np.zeros(y_true.shape + (2,) , dtype=np.float64)
+        pk = np.zeros(y_true.shape + (2,), dtype=np.float64)
         assert pk.shape == (cfg.BATCH_SIZE, self.nb_classes, 2), 'wrong pk shape %s' % str(pk.shape)
 
         for i, example in enumerate(y_true):
@@ -123,7 +124,14 @@ class ConditionalPrior(BasePrior):
 
         pk (BS, K, 2)
         sk (BS, K)
+
+        output: (BS, K)
         '''
+        sk = np.asarray(sk)
+
+        assert sk.shape == (cfg.BATCH_SIZE, self.nb_classes), 'wrong sk shape %s' % str(sk.shape)
+        assert pk.shape == (cfg.BATCH_SIZE, self.nb_classes, 2), 'wrong pk shape %s' % str(pk.shape)
+
         ones_yk = sk * pk[:, :, 1]
         zeros_yk = (1 - sk) * pk[:, :, 0]
         return ones_yk / (ones_yk + zeros_yk)
@@ -137,7 +145,9 @@ class ConditionalPrior(BasePrior):
         2. order those values and get the corresponding indexes
         3. take the 'best' 33% of these values and put a 1 in the relabel output at these indexes
         '''
+        y_pred = np.asarray(y_pred)
 
+        assert y_pred.shape == (cfg.BATCH_SIZE, self.nb_classes), 'wrong y_pred shape %s' % str(y_pred.shape)
         assert yk.shape == (cfg.BATCH_SIZE, self.nb_classes), 'wrong yk shape %s' % str(yk.shape)
         assert y_true.shape == (cfg.BATCH_SIZE, self.nb_classes), 'wrong y_true shape %s' % str(y_true.shape)
 
