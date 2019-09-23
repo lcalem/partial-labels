@@ -10,9 +10,10 @@ from config.config import cfg
 
 class BaselineRelabeling(Relabelator):
 
-    def __init__(self, exp_folder, p):
+    def __init__(self, exp_folder, p, nb_classes):
         self.exp_folder = exp_folder
         self.p = p
+        self.nb_classes = nb_classes
 
     def init_step(self, relabel_step_nb):
         # save new targets as file
@@ -25,7 +26,9 @@ class BaselineRelabeling(Relabelator):
 
         self.f_relabel = open(self.targets_path, 'w+')
 
-    def finish_step(self):
+    def finish_step(self, relabel_step):
+        assert relabel_step == self.relabel_step
+
         relabel_logpath = os.path.join(self.exp_folder, 'relabeling', 'log_relabeling.csv')
         with open(relabel_logpath, 'a') as f_log:
             f_log.write('%s,%s,%s\n' % (self.p, self.relabel_step, self.total_added))
@@ -40,6 +43,7 @@ class BaselineRelabeling(Relabelator):
 
         '''
         y_pred = np.asarray(y_pred)
+        y_batch = y_batch[0]
 
         assert y_pred.shape == (cfg.BATCH_SIZE, self.nb_classes), 'wrong y_pred shape %s' % str(y_pred.shape)
         assert y_batch.shape == (cfg.BATCH_SIZE, self.nb_classes), 'wrong y_batch shape %s' % str(y_batch.shape)
@@ -68,16 +72,16 @@ class BaselineRelabeling(Relabelator):
 
         self.total_added += nb_ok_indexes
 
-        print('y batch')
-        print(y_batch)
+        # print('y batch')
+        # print(y_batch)
 
-        print('y pred')
-        print(y_pred)
+        # print('y pred')
+        # print(y_pred)
 
-        print('relabeling')
-        print(relabel_batch)
+        # print('relabeling')
+        # print(relabel_batch)
 
-        raise
+        # raise
 
         # write batch to relabel csv
         for i in range(len(relabel_batch)):

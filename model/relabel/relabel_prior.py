@@ -10,16 +10,17 @@ from config.config import cfg
 
 class PriorRelabeling(Relabelator):
 
-    def __init__(self, exp_folder, p):
+    def __init__(self, exp_folder, p, nb_classes):
         self.exp_folder = exp_folder
         self.p = p
+        self.nb_classes = nb_classes
         self.prior = self.load_prior(cfg.RELABEL.PRIOR)
 
     def load_prior(self, name):
         if name == 'conditional':
             prior_path = cfg.RELABEL.PRIOR_PATH
             prior_path = prior_path.replace('$PROP', str(self.p))
-            return priors.ConditionalPrior(prior_path)
+            return priors.ConditionalPrior(prior_path, nb_classes=self.nb_classes)
 
     def init_step(self, relabel_step_nb):
         # save new targets as file
