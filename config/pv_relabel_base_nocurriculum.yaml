@@ -1,0 +1,23 @@
+archi:
+    name: baseline
+    classifier: resnet50
+    loss: bce
+dataset:
+    name: pascalvoc
+    path: /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/
+    train: trainval
+    test: test
+relabel:
+    active: true
+    name: relabel_all
+    steps: 2
+image:
+    img_size: 448
+batch_size: 16
+training:
+    n_epochs: 20
+    optimizer: sgd
+    start_lr: 0.01
+    skip_val: true
+callback:
+    val_cb: map
