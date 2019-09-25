@@ -44,12 +44,12 @@ class BaseModel(object):
     def build(self):
         raise NotImplementedError
 
-    def train(self, data_tr, steps_per_epoch, cb_list, dataset_val=None):
+    def train(self, data_tr, steps_per_epoch, cb_list, n_epochs, dataset_val=None):
 
         print("Training with %s callbacks" % len(cb_list))
         kwargs = {
             'steps_per_epoch': steps_per_epoch,
-            'epochs': cfg.TRAINING.N_EPOCHS,
+            'epochs': n_epochs,
             'callbacks': cb_list,
             'shuffle': cfg.DATASET.SHUFFLE,
             'initial_epoch': 0

@@ -86,7 +86,7 @@ class Launcher():
         self.build_model(self.dataset_train.nb_classes, p)
 
         steps_per_epoch = len(self.dataset_train)
-        self.model.train(self.dataset_train, steps_per_epoch=steps_per_epoch, cb_list=cb_list, dataset_val=self.dataset_test)
+        self.model.train(self.dataset_train, steps_per_epoch=steps_per_epoch, cb_list=cb_list, n_epochs=cfg.TRAINING.N_EPOCHS, dataset_val=self.dataset_test)
 
         # cleaning (to release memory before next launch)
         K.clear_session()
@@ -117,8 +117,9 @@ class Launcher():
             cb_list = self.build_callbacks(p, relabel_step=relabel_step)
 
             # actual training
+            n_epochs = cfg.TRAINING_N_EPOCHS if cfg.RELABEL.EPOCHS is None else cfg.RELABEL.EPOCHS[relabel_step]
             steps_per_epoch = len(self.dataset_train) if not cfg.TRAINING.STEPS_PER_EPOCH else cfg.TRAINING.STEPS_PER_EPOCH
-            self.model.train(self.dataset_train, steps_per_epoch=steps_per_epoch, cb_list=cb_list, dataset_val=self.dataset_test)
+            self.model.train(self.dataset_train, steps_per_epoch=steps_per_epoch, cb_list=cb_list, n_epochs=n_epochs, dataset_val=self.dataset_test)
             # self.model.train(self.dataset_train, steps_per_epoch=10, cb_list=cb_list)
 
             # relabeling
