@@ -9,6 +9,10 @@ dataset:
     test: test
 relabel:
     active: true
+    epochs:
+        - 10
+        - 5
+        - 5
     name: relabel_prior
     steps: 3
     prior: conditional
@@ -17,7 +21,6 @@ image:
     img_size: 448
 batch_size: 16
 training:
-    n_epochs: 20
     optimizer: sgd
     start_lr: 0.01
     skip_val: true
