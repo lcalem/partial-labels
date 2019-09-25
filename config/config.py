@@ -7,6 +7,7 @@ cfg.RANDOM_SEED = 1
 
 cfg.VERBOSE = True
 cfg.EPSILON = 1e-7
+cfg.CLEANUP = False
 
 # debug config
 cfg.DEBUG = edict()
@@ -53,3 +54,4 @@ cfg.MULTIP.USE_MULTIPROCESS = False
 # specifics
 cfg.RELABEL = edict()
 cfg.RELABEL.ACTIVE = False
+cfg.RELABEL.EPOCHS = None

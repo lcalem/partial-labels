@@ -1,5 +1,5 @@
 archi:
-    name: baseline
+    name: baseline_logits
     classifier: resnet50
     loss: bce
 dataset:
@@ -9,10 +9,11 @@ dataset:
     test: test
 relabel:
     active: true
-    name: relabel_sk
+    name: relabel_baseline
     steps: 3
-    prior: conditional
-    prior_path: /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/Annotations/prior_matrix2_trainval_partial_$PROP_1.json
+    options:
+        type: threshold   # = strategy [a] from the durand paper
+        threshold: 2
 image:
     img_size: 448
 batch_size: 16

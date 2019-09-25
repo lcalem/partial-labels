@@ -25,6 +25,11 @@ class MAPCallback(Callback):
         '''
 
         y_pred = self.model.predict(self.x_val)
+
+        # some models output only y_pred, some output [y_pred, logits]
+        if len(y_pred) == 2:
+            y_pred = y_pred[0]
+
         ap_scores = self.map.compute_separated(self.y_val, y_pred)
         print('ap scores type %s' % type(ap_scores))
         map_score = sum(ap_scores) / len(ap_scores)
