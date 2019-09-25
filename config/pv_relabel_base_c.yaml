@@ -1,0 +1,29 @@
+archi:
+    name: baseline_logits
+    classifier: resnet50
+    loss: bce
+dataset:
+    name: pascalvoc
+    path: /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/
+    train: trainval
+    test: test
+relabel:
+    active: true
+    name: relabel_baseline
+    steps: 3
+    epochs:
+        - 10
+        - 5
+        - 5
+    options:
+        type: positives   # strategy [c] from durand paper
+        threshold: 5
+image:
+    img_size: 448
+batch_size: 16
+training:
+    optimizer: sgd
+    start_lr: 0.01
+    skip_val: true
+callback:
+    val_cb: map
