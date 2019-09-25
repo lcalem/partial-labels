@@ -117,7 +117,7 @@ class Launcher():
             cb_list = self.build_callbacks(p, relabel_step=relabel_step)
 
             # actual training
-            n_epochs = cfg.TRAINING_N_EPOCHS if cfg.RELABEL.EPOCHS is None else cfg.RELABEL.EPOCHS[relabel_step]
+            n_epochs = cfg.TRAINING.N_EPOCHS if cfg.RELABEL.EPOCHS is None else cfg.RELABEL.EPOCHS[relabel_step]
             steps_per_epoch = len(self.dataset_train) if not cfg.TRAINING.STEPS_PER_EPOCH else cfg.TRAINING.STEPS_PER_EPOCH
             self.model.train(self.dataset_train, steps_per_epoch=steps_per_epoch, cb_list=cb_list, n_epochs=n_epochs, dataset_val=self.dataset_test)
             # self.model.train(self.dataset_train, steps_per_epoch=10, cb_list=cb_list)
@@ -153,6 +153,11 @@ class Launcher():
         if cfg.ARCHI.NAME == 'baseline':
             from model.networks.baseline import Baseline
             self.model = Baseline(self.exp_folder, n_classes, p)
+
+        elif cfg.ARCHI.NAME == 'baseline_logits':
+            from model.networks.baseline_logits import BaselineLogits
+            self.model = BaselineLogits(self.exp_folder, n_classes, p)
+
         elif cfg.ARCHI.NAME == 'seg_baseline':
             from model.networks.seg_baseline import SegBaseline
             self.model = SegBaseline(self.exp_folder, n_classes, p)
@@ -160,11 +165,17 @@ class Launcher():
         self.model.build()
 
     def load_relabelator(self, p, nb_classes):
-
+        '''
+        Selects the right class for managing the relabeling depending on the option specified
+        '''
         if cfg.RELABEL.NAME == 'relabel_prior':
             return relabel.PriorRelabeling(self.exp_folder, p, nb_classes)
         elif cfg.RELABEL.NAME == 'relabel_sk':
-            return relabel.BaselineRelabeling(self.exp_folder, p, nb_classes)
+            return relabel.SkRelabeling(self.exp_folder, p, nb_classes)
+        elif cfg.RELABEL.NAME == 'relabel_all':
+            return relabel.AllSkRelabeling(self.exp_folder, p, nb_classes)
+        elif cfg.RELABEL.NAME == 'relabel_baseline':
+            return relabel.BaselineRelabeling(self.exp_folder, p, nb_classes, cfg.RELABEL.OPTIONS.TYPE, cfg.RELABEL.OPTIONS.THRESHOLD)
 
     def build_callbacks(self, prop, relabel_step=None):
         '''
@@ -243,9 +254,11 @@ class Launcher():
 # python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 90,70,50,30,10
 # python3 launch.py -o pv_partial50_sgd_448lrs -g 3 -p 90,70,50,30,10
 # python3 launch.py -o coco14_baseline_lrs_nomap -g 3 -p 90
-# python3 launch.py -o pv_relabel_baseline -g 1 -p 50
-# python3 launch.py -o relabel_test -g 1 -p 50
+# python3 launch.py -o pv_relabel_base_nocurriculum -g 1 -p 10
+# python3 launch.py -o relabel_test -g 1 -p 10
 # python3 launch.py -o coco14_baseline -g 0 -p 100
+# python3 launch.py -o pv_baseline -g 0 -p 10
+# python3 launch.py -o pv_relabel_base_a -g 0 -p 10
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
@@ -263,12 +276,13 @@ if __name__ == '__main__':
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
-    launcher = Launcher(exp_folder, percent=args.percent)
-    launcher.launch()
-
-    # cleanup if needed (test folders)
-    if cfg.CLEANUP is True:
-        log.printcn(log.OKBLUE, 'Cleaning folder %s' % (exp_folder))
-        shutil.rmtree(exp_folder)
+    try:
+        launcher = Launcher(exp_folder, percent=args.percent)
+        launcher.launch()
+    finally:
+        # cleanup if needed (test folders)
+        if cfg.CLEANUP is True:
+            log.printcn(log.OKBLUE, 'Cleaning folder %s' % (exp_folder))
+            shutil.rmtree(exp_folder)
 
 

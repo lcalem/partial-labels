@@ -1,14 +1,11 @@
-import os
-
-from model.relabel.base import Relabelator
-from model.utils import log
+from model.relabel.base import ClassifRelabelator
 
 from model import priors
 
 from config.config import cfg
 
 
-class PriorRelabeling(Relabelator):
+class PriorRelabeling(ClassifRelabelator):
 
     def __init__(self, exp_folder, p, nb_classes):
         self.exp_folder = exp_folder
@@ -21,29 +18,6 @@ class PriorRelabeling(Relabelator):
             prior_path = cfg.RELABEL.PRIOR_PATH
             prior_path = prior_path.replace('$PROP', str(self.p))
             return priors.ConditionalPrior(prior_path, nb_classes=self.nb_classes)
-
-    def init_step(self, relabel_step_nb):
-        # save new targets as file
-        self.targets_path = os.path.join(self.exp_folder, 'relabeling', 'relabeling_%s_%sp.csv' % (relabel_step_nb, self.p))
-        os.makedirs(os.path.dirname(self.targets_path), exist_ok=True)
-
-        self.total_added = 0
-        self.seen_keys = set()
-        self.relabel_step = relabel_step_nb
-
-        self.f_relabel = open(self.targets_path, 'w+')
-
-    def finish_step(self, relabel_step):
-        assert relabel_step == self.relabel_step
-
-        relabel_logpath = os.path.join(self.exp_folder, 'relabeling', 'log_relabeling.csv')
-        with open(relabel_logpath, 'a') as f_log:
-            f_log.write('%s,%s,%s\n' % (self.p, self.relabel_step, self.total_added))
-
-        log.printcn(log.OKBLUE, '\tAdded %s labels during relabeling, logging into %s' % (self.total_added, relabel_logpath))
-        log.printcn(log.OKBLUE, '\tNew dataset path %s' % (self.targets_path))
-
-        self.f_relabel.close()
 
     def relabel(self, x_batch, y_batch, y_pred):
         '''
@@ -88,6 +62,3 @@ class PriorRelabeling(Relabelator):
                 self.f_relabel.write(relabel_line)
 
             self.seen_keys.add(img_id)
-
-    def __del__(self):
-        self.f_relabel.close()
