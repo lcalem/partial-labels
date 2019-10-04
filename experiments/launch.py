@@ -25,7 +25,6 @@ from model.utils import log
 
 from model.networks.seg_baseline import prior_pre_processing
 
-from model import priors
 from model import relabel
 
 
@@ -108,7 +107,6 @@ class Launcher():
         5. train
         '''
 
-
         self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, batch_size=cfg.BATCH_SIZE, p=p)
         self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size=cfg.TEST_BATCH_SIZE)
         # model
@@ -135,8 +133,6 @@ class Launcher():
         K.clear_session()
         del self.model
 
-        
-        
     def load_dataset(self, mode, batch_size, p=None):
         '''
         we keep an ugly switch for now
@@ -169,9 +165,9 @@ class Launcher():
         elif cfg.ARCHI.NAME == 'seg_baseline':
             from model.networks.seg_baseline import SegBaseline
             self.model = SegBaseline(self.exp_folder, n_classes, p)
-            
+
         self.model.build()
-        
+
         if self.initial_weights is not None:
             self.model.load_weights(self.initial_weights, load_config=False)
 
@@ -263,11 +259,6 @@ class Launcher():
         # update dataset
         self.dataset_train.update_targets(targets_path)
 
-
-
-
-        
-        
 
 
 # python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 100
