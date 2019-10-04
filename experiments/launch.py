@@ -25,7 +25,6 @@ from model.utils import log
 
 from model.networks.seg_baseline import prior_pre_processing
 
-from model import priors
 from model import relabel
 
 
@@ -109,7 +108,6 @@ class Launcher():
         5. train
         '''
 
-
         self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size=cfg.BATCH_SIZE)
         self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size=cfg.TEST_BATCH_SIZE)
         # model
@@ -136,8 +134,6 @@ class Launcher():
         K.clear_session()
         del self.model
 
-        
-        
     def load_dataset(self, mode, batch_size, p=None):
         '''
         we keep an ugly switch for now
@@ -170,9 +166,9 @@ class Launcher():
         elif cfg.ARCHI.NAME == 'seg_baseline':
             from model.networks.seg_baseline import SegBaseline
             self.model = SegBaseline(self.exp_folder, n_classes, p)
-            
+
         self.model.build()
-        
+
         if self.initial_weights is not None:
             self.model.load_weights(self.initial_weights, load_config=False)
 
@@ -261,13 +257,10 @@ class Launcher():
         # update dataset
         self.dataset_train.update_targets(targets_path)
 
-
-
     def relabel_segmentation_dataset(self, relabel_step, p):
         '''
         Relabel the segmentation annotations with the current model
         '''
-
 
         def get_new_missing_labels(probabilities, prediction, reannotation_proportion):
             proba_of_the_predicted_labels = probabilities * prediction
@@ -283,7 +276,7 @@ class Launcher():
                         thresholded_image = (probabilities > flatten_proba[-nb_indices_to_keep]).astype(np.int32)
                     else:
                         thresholded_image = np.zeros_like(probabilities, dtype=np.int32)
-                        
+
                         where_ones = np.where(probabilities > 0.9999)
                         nb_ones = len(where_ones[0])
                         choosen_idx = np.random.choice(range(nb_ones), nb_indices_to_keep, replace=False)
@@ -293,12 +286,11 @@ class Launcher():
                             thresholded_image[indx, indy] = 1
             else:
                 thresholded_image = np.zeros_like(probabilities, dtype=np.int32)
-                
+
             return thresholded_image
 
-
         exp_name = self.exp_folder.split('/')[-1]
-        
+
         prior = np.load('/local/DEEPLEARNING/IRCAD_liver_pancreas_stomach/priors/pancreas_{}.npy'.format(p))
         prior = prior_pre_processing(prior, 1.0)
 
@@ -308,10 +300,10 @@ class Launcher():
 
         saved_targets_annotations_path = os.path.join(self.exp_folder, 'relabeled_annotations', 'annotations', str(p), str(relabel_step))
         saved_targets_missing_organs_path = os.path.join(self.exp_folder, 'relabeled_annotations', 'missing_organs', str(p), str(relabel_step))
-        
+
         TP = [0,]*self.dataset_train.nb_classes
         FP = [0,]*self.dataset_train.nb_classes
-        
+
         for b in range(len(self.dataset_train)):
             x_batch, y_batch = self.dataset_train[b]
             y_pred = self.model.predict(x_batch)
@@ -321,18 +313,18 @@ class Launcher():
                 y_true_100 = np.load(os.path.join(self.data_dir, 'annotations', '100', x_batch[2][i]))
                 # Get the initial missing organs array for getting the right missing organs (because not yet relabeled)
                 y_missing_organs_p = np.load(os.path.join(self.data_dir, 'missing_organs', str(p), x_batch[2][i]))
-                
+
                 new_annotation = np.copy(y_true_example).astype(np.uint8)
                 new_missing_organ = np.copy(x_batch[1][i,:,:,:]).astype(np.uint8)
-                    
+
                 missing_organs = np.where(np.sum(y_missing_organs_p, axis=(0,1)) == 0)[0]
-                    
+
                 y_proba_example = y_pred[i,:,:,:]
                 # Include the prior
                 y_proba_example = (y_proba_example * prior) / np.expand_dims(np.sum(y_proba_example * prior, axis=-1), axis=-1)
-                
+
                 y_pred_example = np.argmax(y_proba_example, axis=-1)
-                
+
                 for m_organ_id in missing_organs:
                     if m_organ_id != 0:
                         pred_for_this_class = (y_pred_example == m_organ_id)
@@ -347,28 +339,26 @@ class Launcher():
 
                         TP[m_organ_id-1] += np.sum(np.logical_and(thresholded_image, gt_100_for_this_class))
                         FP[m_organ_id-1] += np.sum(np.logical_and(thresholded_image, np.logical_not(gt_100_for_this_class)))
-                        
 
                 # Save reannotation in data_dir
                 annotations_file = os.path.join(targets_annotations_path, x_batch[2][i])
                 missing_organs_file = os.path.join(targets_missing_organs_path, x_batch[2][i])
-                
+
                 os.makedirs(os.path.dirname(annotations_file), exist_ok=True)
                 os.makedirs(os.path.dirname(missing_organs_file), exist_ok=True)
-                
+
                 np.save(annotations_file, new_annotation)
                 np.save(missing_organs_file, new_missing_organ)
 
                 # Save reannotation in exp_folder
                 annotations_file = os.path.join(saved_targets_annotations_path, x_batch[2][i])
                 missing_organs_file = os.path.join(saved_targets_missing_organs_path, x_batch[2][i])
-                
+
                 os.makedirs(os.path.dirname(annotations_file), exist_ok=True)
                 os.makedirs(os.path.dirname(missing_organs_file), exist_ok=True)
-                
+
                 np.save(annotations_file, new_annotation)
                 np.save(missing_organs_file, new_missing_organ)
-
 
         # log relabelling stats
         relabel_logpath = os.path.join(self.exp_folder, 'relabeling', 'log_relabeling.csv')
@@ -377,13 +367,10 @@ class Launcher():
             f_log.write('{},{},{},{}\n'.format(p, relabel_step, TP, FP))
 
         log.printcn(log.OKBLUE, '\tAdded {} TP and {} FP, logging into {}'.format(TP, FP, relabel_logpath))
-                
+
         # update dataset
         targets_path_template = os.path.join(self.data_dir, 'relabeled_annotations', exp_name, '{}', str(p), str(relabel_step))
         self.dataset_train.update_targets(targets_path_template)
-
-        
-        
 
 
 # python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 100
