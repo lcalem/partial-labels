@@ -1,13 +1,5 @@
 import tensorflow as tf
 
-import keras_applications
-keras_applications.set_keras_submodules(
-    backend=tf.keras.backend,
-    layers=tf.keras.layers,
-    models=tf.keras.models,
-    utils=tf.keras.utils
-)
-
 from tensorflow.keras import Model, Input
 from tensorflow.keras.applications import ResNet50, Xception
 
@@ -50,17 +42,16 @@ class DiceScore(tf.keras.metrics.Metric):
         return (2. * self.intersection_sum + epsilon) / (self.true_sum + self.pred_sum + epsilon)
 
 
-
 class WeightedCrossEntropy(tf.keras.losses.Loss):
     def __init__(self, class_weights):
         super().__init__()
         self.name = 'weighted_cross_entropy'
         self.class_weights = tf.constant(class_weights, dtype=tf.float32, name='class_weights')
-    
+
     def call(self, y_true, y_pred):
         y_true = tf.cast(y_true, dtype=tf.float32)
         y_pred = tf.cast(y_pred, dtype=tf.float32)
-        
+
         weights = tf.reduce_sum(self.class_weights * y_true, axis=-1)
         unweighted_cross_entropy = tf.keras.losses.categorical_crossentropy(y_true, y_pred)
         cross_entropy = tf.reduce_mean(unweighted_cross_entropy * weights)
@@ -73,12 +64,12 @@ class WeightedCrossEntropy_v2(tf.keras.losses.Loss):
         self.name = 'weighted_cross_entropy'
         self.class_weights = tf.constant(class_weights, shape=(4,), dtype=tf.float32, name='class_weights')
         self.ambiguity_map = ambiguity_map
-    
+
     def call(self, y_true, y_pred):
         #y_true = tf.reshape(y_true, shape=(-1, 1))
         #y_pred = tf.reshape(y_pred, shape=(-1, 1))
         #ambiguity = tf.reshape(self.ambiguity_map, shape=(-1, 1))
-        
+
         #weights = tf.reduce_sum(self.class_weights * y_true, axis=-1)
         unweighted_cross_entropy = tf.keras.losses.binary_crossentropy(y_true*self.ambiguity_map, y_pred*self.ambiguity_map)
         #cross_entropy = tf.reduce_mean(unweighted_cross_entropy * weights)
@@ -101,9 +92,9 @@ class SegBaseline(BaseModel):
     def build(self):
 
         ambiguity_map = tf.keras.Input(shape=self.output_shape, name='ambiguity_map')
-        
+
         resnet = ResNet50(include_top=False, weights='imagenet', input_shape=self.input_shape)
-        
+
         x = resnet.output
         x = tf.keras.layers.Conv2D(self.n_classes, 1, activation=None)(x)
         x = tf.keras.layers.UpSampling2D(size=(32,32), interpolation='bilinear')(x)
@@ -115,12 +106,12 @@ class SegBaseline(BaseModel):
         self.log('Outputs shape %s' % str(self.model.output_shape))
 
         optimizer = self.build_optimizer()
-        
+
         metrics = ['categorical_accuracy',
                    DiceScore(class_id=1, name='liver_dice'),
                    DiceScore(class_id=2, name='pancreas_dice'),
                    DiceScore(class_id=3, name='stomach_dice')]
-        
+
         #loss = WeightedCrossEntropy([1.0, 3.0, 50.0, 30.0])
         #loss = WeightedCrossEntropy_v2([1.011276563, 144.6087607, 1090.794364, 301.3094671])
         loss = WeightedCrossEntropy_v2(ambiguity_map, [0.04292439486, 0.6141659478, 5.935304885, 2.689794809])
@@ -128,7 +119,7 @@ class SegBaseline(BaseModel):
         #loss = tf.keras.losses.CategoricalCrossentropy()
 
         #loss = tf.keras.losses.BinaryCrossentropy()
-        
+
         self.model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
         if self.verbose:
