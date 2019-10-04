@@ -1,0 +1,22 @@
+archi:
+    name: seg_baseline
+dataset:
+    name: ircad_lps
+    path: /local/DEEPLEARNING/IRCAD_liver_pancreas_stomach/
+    train: train
+    test: valid
+image:
+    img_size: 512
+    n_channels: 3
+batch_size: 10
+training:
+    n_epochs: 50
+    optimizer: adam
+    start_lr: 0.00001
+    skip_val: False
+callback:
+    skip_map: True
+relabel:
+    active: True
+    mode: segmentation
+    steps: 3
