@@ -7,12 +7,14 @@ from config.config import cfg
 
 import tensorflow as tf
 
-NB_CLASSES = 4 # Background, Liver, Pancreas, Stomach
+#NB_CLASSES = 4 # Background, Liver, Pancreas, Stomach
+
+NB_CLASSES = 2 # Background, Pancreas        
 
 
 class IrcadLPS(Dataset):
 
-    supported_keys = ('image', 'segmentation', 'ambiguity')
+    supported_keys = ('image', 'segmentation', 'ambiguity', 'image_id')
     supported_modes = ('train', 'valid')
     nb_classes = NB_CLASSES
 
@@ -28,10 +30,14 @@ class IrcadLPS(Dataset):
         
         # Setting the random generator seed
         np.random.seed(cfg.RANDOM_SEED)
-
+        
         self.images_path = os.path.join(dataset_path, 'images')
-        self.annotations_path = os.path.join(dataset_path, 'annotations')
-        self.missing_annotations_path = os.path.join(dataset_path, 'missing_organs')
+        if p is None:
+            self.annotations_path = os.path.join(dataset_path, 'annotations', '100')
+            self.missing_annotations_path = os.path.join(dataset_path, 'missing_organs', '100')
+        else:
+            self.annotations_path = os.path.join(dataset_path, 'annotations', str(p))
+            self.missing_annotations_path = os.path.join(dataset_path, 'missing_organs', str(p))
         
         self.valid_split_number = valid_split_number
         self.split_name = split_name
@@ -68,7 +74,7 @@ class IrcadLPS(Dataset):
                 p = 100
             else:
                 p = self.p
-            samples += [str(pid)+'/'+x for x in os.listdir(os.path.join(self.annotations_path, str(p), str(pid)))]
+            samples += [str(pid)+'/'+x for x in os.listdir(os.path.join(self.annotations_path, str(pid)))]
         
         return samples
 
@@ -80,6 +86,8 @@ class IrcadLPS(Dataset):
             return self.img_size
         elif key == 'ambiguity':
             return self.img_size
+        elif key == 'image_id':
+            return (1,)
         else:
             raise Exception('Unknown key {}'.format(key))
 
@@ -96,14 +104,12 @@ class IrcadLPS(Dataset):
 
         for img_id in sample_ids:
 
-            missing_organs = np.array([1, 1, 1])
-            if self.mode == 'train':
-                target_path = os.path.join(self.annotations_path, str(self.p), img_id)
-                missing_organs = np.load(os.path.join(self.missing_annotations_path, str(self.p), img_id))
-            elif self.mode == 'valid':
-                target_path = os.path.join(self.annotations_path, '100', img_id)
-            else:
-                raise Exception('Wrong mode: {}'.format(self.mode))
+            #missing_organs = np.ones((self.img_size[0], self.img_size[1], self.nb_classes), np.float32)
+
+            target_path = os.path.join(self.annotations_path, img_id)
+            missing_organs = np.load(os.path.join(self.missing_annotations_path, img_id)).astype(np.float32)
+            
+            
             
             # Image
             img_path = os.path.join(self.images_path, img_id)
@@ -118,13 +124,7 @@ class IrcadLPS(Dataset):
             target_batch.append(target)
 
             # Ambiguity map
-            ambiguity_map = np.zeros_like(target, dtype=np.float32)
-            ambiguity_map[:,:,0] = 1.0
-            for i, kept in enumerate(missing_organs):
-                if kept == 1:
-                    ambiguity_map[:,:,i+1] = 1.0
-
-            ambiguity_batch.append(ambiguity_map)
+            ambiguity_batch.append(missing_organs)
             
             
         img_batch = np.reshape(img_batch, (-1, self.img_size[0], self.img_size[1], 3))
@@ -134,9 +134,19 @@ class IrcadLPS(Dataset):
         output['image'] = img_batch
         output['ambiguity'] = ambiguity_batch
         output['segmentation'] = target_batch
+        output['image_id'] = sample_ids
 
         return output
 
 
     def init_cooc(self):
         pass
+
+    
+    def update_targets(self, new_path):
+        '''
+        Called during relabeling to tell the dataset to batch from the new targets instead
+        '''
+        self.annotations_path = new_path.format('annotations')
+        self.missing_annotations_path = new_path.format('missing_organs')
+    
