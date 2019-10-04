@@ -64,7 +64,7 @@ def create_prior(dataset_path):
         json.dump(cooc_superclass, f_json)
 
 
-# python3 prior_matrix.py /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/Annotations/annotations_multilabel_trainval_partial_10_1.csv
+# python3 prior_matrix.py /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/Annotations/annotations_multilabel_trainval_partial_50_1.csv
 if __name__ == '__main__':
     filepath = sys.argv[1]
     create_prior(filepath)
