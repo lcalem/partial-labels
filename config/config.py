@@ -3,6 +3,7 @@ from easydict import EasyDict as edict
 cfg = edict()
 
 cfg.BATCH_SIZE = 32
+cfg.TEST_BATCH_SIZE = 32
 cfg.RANDOM_SEED = 1
 
 cfg.VERBOSE = True
