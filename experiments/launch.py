@@ -77,7 +77,7 @@ class Launcher():
         '''
 
         self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, batch_size=cfg.BATCH_SIZE, p=p)
-        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size=cfg.BATCH_SIZE)
+        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size='all')
 
         # callbacks
         cb_list = self.build_callbacks(p)
@@ -102,8 +102,8 @@ class Launcher():
         5. train
         '''
 
-        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size='all')
         self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, batch_size=cfg.BATCH_SIZE, p=p)
+        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size='all')
 
         # model
         self.build_model(self.dataset_train.nb_classes, p)
@@ -169,7 +169,7 @@ class Launcher():
         Selects the right class for managing the relabeling depending on the option specified
         '''
         if cfg.RELABEL.NAME == 'relabel_prior':
-            return relabel.PriorRelabeling(self.exp_folder, p, nb_classes)
+            return relabel.PriorRelabeling(self.exp_folder, p, nb_classes, cfg.RELABEL.OPTIONS.TYPE, cfg.RELABEL.OPTIONS.THRESHOLD)
         elif cfg.RELABEL.NAME == 'relabel_sk':
             return relabel.SkRelabeling(self.exp_folder, p, nb_classes)
         elif cfg.RELABEL.NAME == 'relabel_all':
@@ -255,10 +255,12 @@ class Launcher():
 # python3 launch.py -o pv_partial50_sgd_448lrs -g 3 -p 90,70,50,30,10
 # python3 launch.py -o coco14_baseline_lrs_nomap -g 3 -p 90
 # python3 launch.py -o pv_relabel_base_nocurriculum -g 1 -p 10
-# python3 launch.py -o relabel_test -g 1 -p 10
+# python3 launch.py -o relabel_test -g 0 -p 10
 # python3 launch.py -o coco14_baseline -g 0 -p 100
 # python3 launch.py -o pv_baseline -g 0 -p 10
-# python3 launch.py -o pv_relabel_base_a -g 0 -p 10
+# python3 launch.py -o pv_relabel_base_b -g 0 -p 10
+# python3 launch.py -o pv_baseline101_test -g 2 -p 10
+# python3 launch.py -o pv_baseline101_val -g 0 -p 10
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
@@ -272,7 +274,7 @@ if __name__ == '__main__':
     config_utils.update_config(options)
 
     # init
-    exp_folder = utils.exp_init(' '.join(sys.argv), args.exp_name)
+    exp_folder = utils.exp_init(' '.join(sys.argv), exp_name=args.exp_name)
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
