@@ -91,12 +91,14 @@ def preprocess_annotations_from_vtk(data_dir, keep_annotation_proportion=100):
 
         # Assemble annotations
         complete_annotation = np.zeros_like(liver_annot, dtype=np.uint8)
-        if keep_annotation[patient_path][0] == 1:
-            complete_annotation[np.where(liver_annot > 0)] = 1
-        if keep_annotation[patient_path][2] == 1:
-            complete_annotation[np.where(stomach_annot > 0)] = 3
+        # if keep_annotation[patient_path][0] == 1:
+        #     complete_annotation[np.where(liver_annot > 0)] = 1
+        # if keep_annotation[patient_path][2] == 1:
+        #     complete_annotation[np.where(stomach_annot > 0)] = 3
+        ### PANCREAS ONLY ###
         if keep_annotation[patient_path][1] == 1:
-            complete_annotation[np.where(pancreas_annot > 0)] = 2
+            complete_annotation[np.where(pancreas_annot > 0)] = 1
+        #####################
 
         # Save the slices
         nb_slices, height, width = liver_annot.shape
@@ -109,11 +111,21 @@ def preprocess_annotations_from_vtk(data_dir, keep_annotation_proportion=100):
 
 
         for i in range(nb_slices):
+            
+            ambiguity_map = np.zeros((512,512,4), dtype=np.uint8)                                                                                                         
+            for c, kept in enumerate(keep_annotation[patient_path]):
+                if kept == 1:
+                    ambiguity_map[:,:,c+1] = 1
+            
             slice_annot_path =  os.path.join(data_dir, 'annotations/{}/{}/{}.npy'.format(keep_annotation_proportion, pid, str(i).zfill(3)))
             slice_missing_annotation_path = os.path.join(data_dir, 'missing_organs/{}/{}/{}.npy'.format(keep_annotation_proportion, pid, str(i).zfill(3)))
+
+            ### PANCREAS ONLY ###
+            ambiguity_map = np.stack([ambiguity_map[:,:,0], ambiguity_map[:,:,2]], axis=-1)
+            #####################
             
             np.save(slice_annot_path, complete_annotation[i,:,:])
-            np.save(slice_missing_annotation_path, keep_annotation[patient_path])
+            np.save(slice_missing_annotation_path, ambiguity_map)
             
 
         print('Creating downsampled dataset ({}) : {} / {} ({:.2f}%)'.format(keep_annotation_proportion, c, len(all_patient_paths), c/len(all_patient_paths)*100), end='\r')
@@ -125,7 +137,7 @@ if __name__ == "__main__":
     random.seed(654654)
     organ_proportions = (1, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
     print('Start dataset creation')
-    preprocess_images_from_vtk(sys.argv[1])
+    #preprocess_images_from_vtk(sys.argv[1])
     for prop in organ_proportions:
         preprocess_annotations_from_vtk(sys.argv[1], prop)
     print('Done.')
