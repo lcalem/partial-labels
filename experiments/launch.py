@@ -1,5 +1,6 @@
 import argparse
 import os
+import shutil
 import sys
 
 from pprint import pprint
@@ -25,6 +26,8 @@ from model.utils import log
 from model.networks.seg_baseline import prior_pre_processing
 
 from model import priors
+from model import relabel
+
 
 from config.config import cfg
 
@@ -81,7 +84,7 @@ class Launcher():
         '''
 
         self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, batch_size=cfg.BATCH_SIZE, p=p)
-        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size=cfg.BATCH_SIZE)
+        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size='all')
 
         # callbacks
         cb_list = self.build_callbacks(p)
@@ -90,7 +93,7 @@ class Launcher():
         self.build_model(self.dataset_train.nb_classes, p)
 
         steps_per_epoch = len(self.dataset_train)
-        self.model.train(self.dataset_train, steps_per_epoch=steps_per_epoch, cb_list=cb_list, dataset_val=self.dataset_test)
+        self.model.train(self.dataset_train, steps_per_epoch=steps_per_epoch, cb_list=cb_list, n_epochs=cfg.TRAINING.N_EPOCHS, dataset_val=self.dataset_test)
 
         # cleaning (to release memory before next launch)
         K.clear_session()
@@ -106,13 +109,14 @@ class Launcher():
         5. train
         '''
 
+
         self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size=cfg.BATCH_SIZE)
         self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, batch_size=cfg.BATCH_SIZE, p=p)
 
         # model
         self.build_model(self.dataset_train.nb_classes, p)
 
-        #self.prior = self.load_prior(cfg.RELABEL.PRIOR, p)
+        self.relabelator = self.load_relabelator(p, self.dataset_train.nb_classes)
 
         for relabel_step in range(cfg.RELABEL.STEPS):
             log.printcn(log.OKBLUE, '\nDoing relabel step %s' % (relabel_step))
@@ -121,16 +125,13 @@ class Launcher():
             cb_list = self.build_callbacks(p, relabel_step=relabel_step)
 
             # actual training
-            self.model.train(self.dataset_train, steps_per_epoch=len(self.dataset_train), cb_list=cb_list, dataset_val=self.dataset_test)
+            n_epochs = cfg.TRAINING.N_EPOCHS if cfg.RELABEL.EPOCHS is None else cfg.RELABEL.EPOCHS[relabel_step]
+            steps_per_epoch = len(self.dataset_train) if not cfg.TRAINING.STEPS_PER_EPOCH else cfg.TRAINING.STEPS_PER_EPOCH
+            self.model.train(self.dataset_train, steps_per_epoch=steps_per_epoch, cb_list=cb_list, n_epochs=n_epochs, dataset_val=self.dataset_test)
             # self.model.train(self.dataset_train, steps_per_epoch=10, cb_list=cb_list)
 
             # relabeling
-            if cfg.RELABEL.MODE == "multilabel":
-                self.relabel_dataset(relabel_step, p)
-            elif cfg.RELABEL.MODE == "segmentation":
-                self.relabel_segmentation_dataset(relabel_step, p)
-            else:
-                raise Exception('Unknown relabel mode : {}'.format(cfg.RELABEL.MODE))
+            self.relabel_dataset(relabel_step)
 
         # cleaning (to release memory before next launch)
         K.clear_session()
@@ -162,6 +163,11 @@ class Launcher():
         if cfg.ARCHI.NAME == 'baseline':
             from model.networks.baseline import Baseline
             self.model = Baseline(self.exp_folder, n_classes, p)
+
+        elif cfg.ARCHI.NAME == 'baseline_logits':
+            from model.networks.baseline_logits import BaselineLogits
+            self.model = BaselineLogits(self.exp_folder, n_classes, p)
+
         elif cfg.ARCHI.NAME == 'seg_baseline':
             from model.networks.seg_baseline import SegBaseline
             self.model = SegBaseline(self.exp_folder, n_classes, p)
@@ -171,11 +177,18 @@ class Launcher():
         if self.initial_weights is not None:
             self.model.load_weights(self.initial_weights, load_config=False)
 
-    def load_prior(self, name, p):
-        if name == 'conditional':
-            prior_path = cfg.RELABEL.PRIOR_PATH
-            prior_path = prior_path.replace('$PROP', str(p))
-            return priors.ConditionalPrior(prior_path)
+    def load_relabelator(self, p, nb_classes):
+        '''
+        Selects the right class for managing the relabeling depending on the option specified
+        '''
+        if cfg.RELABEL.NAME == 'relabel_prior':
+            return relabel.PriorRelabeling(self.exp_folder, p, nb_classes, cfg.RELABEL.OPTIONS.TYPE, cfg.RELABEL.OPTIONS.THRESHOLD)
+        elif cfg.RELABEL.NAME == 'relabel_sk':
+            return relabel.SkRelabeling(self.exp_folder, p, nb_classes)
+        elif cfg.RELABEL.NAME == 'relabel_all':
+            return relabel.AllSkRelabeling(self.exp_folder, p, nb_classes)
+        elif cfg.RELABEL.NAME == 'relabel_baseline':
+            return relabel.BaselineRelabeling(self.exp_folder, p, nb_classes, cfg.RELABEL.OPTIONS.TYPE, cfg.RELABEL.OPTIONS.THRESHOLD)
 
     def build_callbacks(self, prop, relabel_step=None):
         '''
@@ -225,7 +238,7 @@ class Launcher():
         else:
             raise Exception('Invalid validation callback %s' % cb_name)
 
-    def relabel_dataset(self, relabel_step, p):
+    def relabel_dataset(self, relabel_step):
         '''
         Use model to make predictions
         Use predictions to relabel elements (create a new relabeled csv dataset)
@@ -233,60 +246,18 @@ class Launcher():
         '''
         log.printcn(log.OKBLUE, '\nDoing relabeling inference step %s' % relabel_step)
 
-        # save new targets as file
-        targets_path = os.path.join(self.exp_folder, 'relabeling', 'relabeling_%s_%sp.csv' % (relabel_step, p))
-        os.makedirs(os.path.dirname(targets_path), exist_ok=True)
+        self.relabelator.init_step(relabel_step)
 
-        total_added = 0
-        seen_keys = set()
+        # predict
+        for i in range(len(self.dataset_train)):
+            x_batch, y_batch = self.dataset_train[i]
 
-        with open(targets_path, 'w+') as f_relabel:
+            y_pred = self.model.predict(x_batch)   # TODO not the logits!!!!!!!!
 
-            # predict
-            for i in range(len(self.dataset_train)):
-                x_batch, y_batch = self.dataset_train[i]
+            self.relabelator.relabel(x_batch, y_batch, y_pred)
 
-                y_pred = self.model.predict(x_batch)   # TODO not the logits!!!!!!!!
-                # print('shape of y_pred %s' % str(y_pred.shape))
-                p_k = self.prior.compute_pk(y_batch[0])
-
-                y_k = self.prior.combine(y_pred, p_k)
-                relabeling, nb_added = self.prior.pick_relabel(y_k, y_batch[0])  # (BS, K)
-                total_added += nb_added
-
-                # print('y batch')
-                # print(y_batch)
-
-                # print('y pred')
-                # print(y_pred)
-
-                # print('pk')
-                # print(p_k)
-
-                # print('y_k')
-                # print(y_k)
-
-                # print('relabeling')
-                # print(relabeling)
-
-                # write batch to relabel csv
-                for i in range(len(relabeling)):
-                    parts = relabeling[i]
-                    img_id = x_batch[1][i][0]
-
-                    # for last batch we have duplicates to fill the remaining batch size, we don't want to write those
-                    if img_id not in seen_keys:
-                        relabel_line = '%s,%s,%s\n' % (img_id, str(parts[0]), ','.join([str(elt) for elt in parts[1:]]))
-                        f_relabel.write(relabel_line)
-
-                    seen_keys.add(img_id)
-
-        relabel_logpath = os.path.join(self.exp_folder, 'relabeling', 'log_relabeling.csv')
-        with open(relabel_logpath, 'a') as f_log:
-            f_log.write('%s,%s,%s\n' % (p, relabel_step, nb_added))
-
-        log.printcn(log.OKBLUE, '\tAdded %s labels during relabeling, logging into %s' % (total_added, relabel_logpath))
-        log.printcn(log.OKBLUE, '\tNew dataset path %s' % (targets_path))
+        self.relabelator.finish_step(relabel_step)
+        targets_path = self.relabelator.targets_path
 
         # update dataset
         self.dataset_train.update_targets(targets_path)
@@ -420,8 +391,13 @@ class Launcher():
 # python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 90,70,50,30,10
 # python3 launch.py -o pv_partial50_sgd_448lrs -g 3 -p 90,70,50,30,10
 # python3 launch.py -o coco14_baseline_lrs_nomap -g 3 -p 90
-# python3 launch.py -o pv_relabel -g 3 -p 50
+# python3 launch.py -o pv_relabel_base_nocurriculum -g 1 -p 10
+# python3 launch.py -o relabel_test -g 0 -p 10
 # python3 launch.py -o coco14_baseline -g 0 -p 100
+# python3 launch.py -o pv_baseline -g 0 -p 10
+# python3 launch.py -o pv_relabel_base_b -g 0 -p 10
+# python3 launch.py -o pv_baseline101_test -g 2 -p 10
+# python3 launch.py -o pv_baseline101_val -g 0 -p 10
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
@@ -440,7 +416,13 @@ if __name__ == '__main__':
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
-    launcher = Launcher(exp_folder, percent=args.percent, initial_weights=args.initial_weights)
-    launcher.launch()
+    try:
+        launcher = Launcher(exp_folder, percent=args.percent, initial_weights=args.initial_weights)
+        launcher.launch()
+    finally:
+        # cleanup if needed (test folders)
+        if cfg.CLEANUP is True:
+            log.printcn(log.OKBLUE, 'Cleaning folder %s' % (exp_folder))
+            shutil.rmtree(exp_folder)
 
 

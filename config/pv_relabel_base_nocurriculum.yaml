@@ -9,18 +9,13 @@ dataset:
     test: test
 relabel:
     active: true
-    epochs:
-        - 10
-        - 5
-        - 5
-    name: relabel_prior
-    steps: 3
-    prior: conditional
-    prior_path: /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/Annotations/prior_matrix2_trainval_partial_$PROP_1.json
+    name: relabel_all
+    steps: 2
 image:
     img_size: 448
 batch_size: 16
 training:
+    n_epochs: 20
     optimizer: sgd
     start_lr: 0.01
     skip_val: true

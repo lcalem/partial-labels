@@ -1,30 +1,24 @@
 archi:
-    name: baseline_logits
+    name: baseline
     classifier: resnet50
     loss: bce
 dataset:
-    name: pascalvoc
-    path: /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/
+    name: coco
+    path: /home/caleml/datasets/mscoco/
     train: train
     test: val
+    year: '2014'
 relabel:
     active: true
     name: relabel_prior
-    steps: 2
-    options:
-        type: proportion
-        threshold: 0.8
+    steps: 3
     prior: conditional
     prior_path: /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/Annotations/prior_matrix2_trainval_partial_$PROP_1.json
 image:
     img_size: 448
 batch_size: 16
 training:
-    n_epochs: 1
+    n_epochs: 20
     optimizer: sgd
     start_lr: 0.01
     skip_val: true
-    steps_per_epoch: 10
-callback:
-    val_cb: NULL
-cleanup: true
