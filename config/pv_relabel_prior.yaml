@@ -9,15 +9,17 @@ dataset:
     test: test
 relabel:
     active: true
-    name: relabel_baseline
+    name: relabel_prior
     steps: 3
     epochs:
         - 10
         - 5
         - 5
     options:
-        type: proportion   # strategy [b] from durand paper
+        type: proportion       # ordering the yk and taking the percent / 2 lowest -> relabel -1 and percent / 2 highest -> 1
         threshold: 0.8
+    prior: conditional
+    prior_path: /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/Annotations/prior_matrix2_trainval_partial_$PROP_1.json
 image:
     img_size: 448
 batch_size: 16

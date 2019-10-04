@@ -5,8 +5,8 @@ archi:
 dataset:
     name: pascalvoc
     path: /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/
-    train: trainval
-    test: test
+    train: train
+    test: val
 relabel:
     active: true
     name: relabel_baseline
