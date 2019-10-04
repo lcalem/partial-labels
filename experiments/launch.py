@@ -44,7 +44,6 @@ class Launcher():
         self.exp_folder = exp_folder   # still not sure this should go in config or not
         self.data_dir = cfg.DATASET.PATH
         self.relabel = cfg.RELABEL.ACTIVE
-        self.relabel_mode = cfg.RELABEL.MODE
         self.initial_weights = initial_weights
 
         if percent is None:
@@ -110,7 +109,7 @@ class Launcher():
         '''
 
 
-        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size=cfg.BATCH_SIZE)
+        self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, batch_size=cfg.BATCH_SIZE, p=p)
         self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size=cfg.TEST_BATCH_SIZE)
         # model
         self.build_model(self.dataset_train.nb_classes, p)
@@ -188,6 +187,9 @@ class Launcher():
             return relabel.AllSkRelabeling(self.exp_folder, p, nb_classes)
         elif cfg.RELABEL.NAME == 'relabel_baseline':
             return relabel.BaselineRelabeling(self.exp_folder, p, nb_classes, cfg.RELABEL.OPTIONS.TYPE, cfg.RELABEL.OPTIONS.THRESHOLD)
+        elif cfg.RELABEL.NAME == 'segmentation':
+            return relabel.SegmentationRelabeling(self.exp_folder, self.data_dir, nb_classes, p)
+
 
     def build_callbacks(self, prop, relabel_step=None):
         '''
@@ -263,124 +265,6 @@ class Launcher():
 
 
 
-    def relabel_segmentation_dataset(self, relabel_step, p):
-        '''
-        Relabel the segmentation annotations with the current model
-        '''
-
-
-        def get_new_missing_labels(probabilities, prediction, reannotation_proportion):
-            proba_of_the_predicted_labels = probabilities * prediction
-            flatten_proba = proba_of_the_predicted_labels.flatten()
-            flatten_proba = flatten_proba[np.where(flatten_proba > 0.0)]
-            if len(flatten_proba) > 0:
-                flatten_proba = np.sort(flatten_proba)
-                nb_indices_to_keep = int(len(flatten_proba) * reannotation_proportion) # 20% of the greatest values
-                if nb_indices_to_keep == 0:
-                    thresholded_image = np.zeros_like(probabilities, dtype=np.int32)
-                else:
-                    if flatten_proba[-nb_indices_to_keep] < 0.9999:
-                        thresholded_image = (probabilities > flatten_proba[-nb_indices_to_keep]).astype(np.int32)
-                    else:
-                        thresholded_image = np.zeros_like(probabilities, dtype=np.int32)
-                        
-                        where_ones = np.where(probabilities > 0.9999)
-                        nb_ones = len(where_ones[0])
-                        choosen_idx = np.random.choice(range(nb_ones), nb_indices_to_keep, replace=False)
-                        for pos in choosen_idx:
-                            indx = where_ones[0][pos]
-                            indy = where_ones[1][pos]
-                            thresholded_image[indx, indy] = 1
-            else:
-                thresholded_image = np.zeros_like(probabilities, dtype=np.int32)
-                
-            return thresholded_image
-
-
-        exp_name = self.exp_folder.split('/')[-1]
-        
-        prior = np.load('/local/DEEPLEARNING/IRCAD_liver_pancreas_stomach/priors/pancreas_{}.npy'.format(p))
-        prior = prior_pre_processing(prior, 1.0)
-
-        log.printcn(log.OKBLUE, '\nDoing segmentation relabeling inference step {}, relabeling {}% of the prediction'.format(relabel_step, 0.33*(relabel_step+1)))
-        targets_annotations_path = os.path.join(self.data_dir, 'relabeled_annotations', exp_name, 'annotations', str(p), str(relabel_step))
-        targets_missing_organs_path = os.path.join(self.data_dir, 'relabeled_annotations', exp_name, 'missing_organs', str(p), str(relabel_step))
-
-        saved_targets_annotations_path = os.path.join(self.exp_folder, 'relabeled_annotations', 'annotations', str(p), str(relabel_step))
-        saved_targets_missing_organs_path = os.path.join(self.exp_folder, 'relabeled_annotations', 'missing_organs', str(p), str(relabel_step))
-        
-        TP = [0,]*self.dataset_train.nb_classes
-        FP = [0,]*self.dataset_train.nb_classes
-        
-        for b in range(len(self.dataset_train)):
-            x_batch, y_batch = self.dataset_train[b]
-            y_pred = self.model.predict(x_batch)
-
-            for i in range(cfg.BATCH_SIZE):
-                y_true_example = np.argmax(y_batch[0][i,:,:,:], axis=-1)
-                y_true_100 = np.load(os.path.join(self.data_dir, 'annotations', '100', x_batch[2][i]))
-                # Get the initial missing organs array for getting the right missing organs (because not yet relabeled)
-                y_missing_organs_p = np.load(os.path.join(self.data_dir, 'missing_organs', str(p), x_batch[2][i]))
-                
-                new_annotation = np.copy(y_true_example).astype(np.uint8)
-                new_missing_organ = np.copy(x_batch[1][i,:,:,:]).astype(np.uint8)
-                    
-                missing_organs = np.where(np.sum(y_missing_organs_p, axis=(0,1)) == 0)[0]
-                    
-                y_proba_example = y_pred[i,:,:,:]
-                # Include the prior
-                y_proba_example = (y_proba_example * prior) / np.expand_dims(np.sum(y_proba_example * prior, axis=-1), axis=-1)
-                
-                y_pred_example = np.argmax(y_proba_example, axis=-1)
-                
-                for m_organ_id in missing_organs:
-                    if m_organ_id != 0:
-                        pred_for_this_class = (y_pred_example == m_organ_id)
-                        gt_for_this_class = (y_true_example == m_organ_id)
-                        gt_100_for_this_class = (y_true_100 == m_organ_id)
-                        proba_for_this_class = y_proba_example[:,:,m_organ_id]
-
-                        new_annotation[pred_for_this_class] = m_organ_id
-                        thresholded_image = get_new_missing_labels(proba_for_this_class, pred_for_this_class, reannotation_proportion=0.33*(relabel_step+1))
-
-                        new_missing_organ[:,:,m_organ_id] = thresholded_image
-
-                        TP[m_organ_id-1] += np.sum(np.logical_and(thresholded_image, gt_100_for_this_class))
-                        FP[m_organ_id-1] += np.sum(np.logical_and(thresholded_image, np.logical_not(gt_100_for_this_class)))
-                        
-
-                # Save reannotation in data_dir
-                annotations_file = os.path.join(targets_annotations_path, x_batch[2][i])
-                missing_organs_file = os.path.join(targets_missing_organs_path, x_batch[2][i])
-                
-                os.makedirs(os.path.dirname(annotations_file), exist_ok=True)
-                os.makedirs(os.path.dirname(missing_organs_file), exist_ok=True)
-                
-                np.save(annotations_file, new_annotation)
-                np.save(missing_organs_file, new_missing_organ)
-
-                # Save reannotation in exp_folder
-                annotations_file = os.path.join(saved_targets_annotations_path, x_batch[2][i])
-                missing_organs_file = os.path.join(saved_targets_missing_organs_path, x_batch[2][i])
-                
-                os.makedirs(os.path.dirname(annotations_file), exist_ok=True)
-                os.makedirs(os.path.dirname(missing_organs_file), exist_ok=True)
-                
-                np.save(annotations_file, new_annotation)
-                np.save(missing_organs_file, new_missing_organ)
-
-
-        # log relabelling stats
-        relabel_logpath = os.path.join(self.exp_folder, 'relabeling', 'log_relabeling.csv')
-        os.makedirs(os.path.dirname(relabel_logpath), exist_ok=True)
-        with open(relabel_logpath, 'a') as f_log:
-            f_log.write('{},{},{},{}\n'.format(p, relabel_step, TP, FP))
-
-        log.printcn(log.OKBLUE, '\tAdded {} TP and {} FP, logging into {}'.format(TP, FP, relabel_logpath))
-                
-        # update dataset
-        targets_path_template = os.path.join(self.data_dir, 'relabeled_annotations', exp_name, '{}', str(p), str(relabel_step))
-        self.dataset_train.update_targets(targets_path_template)
 
         
         
