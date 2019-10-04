@@ -17,5 +17,6 @@ def count_zeros(dataset_path):
 
 
 # python3 count_zeros.py /share/DEEPLEARNING/datasets/pascalvoc/VOCdevkit/VOC2007/Annotations/annotations_multilabel_train.csv
+# python3 count_zeros.py /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/Annotations/annotations_multilabel_trainval_partial_10_1.csv
 if __name__ == '__main__':
     count_zeros(sys.argv[1])
