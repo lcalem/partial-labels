@@ -77,7 +77,7 @@ class Launcher():
         '''
 
         self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, batch_size=cfg.BATCH_SIZE, p=p)
-        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size='all')
+        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size=cfg.TEST_BATCH_SIZE)
 
         # callbacks
         cb_list = self.build_callbacks(p)
@@ -103,7 +103,7 @@ class Launcher():
         '''
 
         self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, batch_size=cfg.BATCH_SIZE, p=p)
-        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size='all')
+        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size=cfg.TEST_BATCH_SIZE)
 
         # model
         self.build_model(self.dataset_train.nb_classes, p)
@@ -260,7 +260,7 @@ class Launcher():
 # python3 launch.py -o pv_baseline -g 0 -p 10
 # python3 launch.py -o pv_relabel_base_b -g 0 -p 10
 # python3 launch.py -o pv_baseline101_test -g 2 -p 10
-# python3 launch.py -o pv_baseline101_val -g 0 -p 10
+# python3 launch.py -o pv_101_relabel_2steps -g 0 -p 10
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')

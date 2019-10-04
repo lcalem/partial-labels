@@ -10,6 +10,7 @@ dataset:
 image:
     img_size: 448
 batch_size: 16
+test_batch_size: all
 training:
     n_epochs: 20
     optimizer: sgd
