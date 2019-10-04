@@ -1,12 +1,12 @@
 archi:
     name: baseline
-    classifier: resnet50
+    classifier: resnet101
     loss: bce
 dataset:
     name: pascalvoc
     path: /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/
-    train: trainval
-    test: test
+    train: train
+    test: val
 image:
     img_size: 448
 batch_size: 16

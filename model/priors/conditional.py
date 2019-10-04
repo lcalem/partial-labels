@@ -20,14 +20,14 @@ class ConditionalPrior(BasePrior):
     - vehicle
     '''
 
-    def __init__(self, matrix_path, nb_classes=20, method='product'):
+    def __init__(self, matrix_path, nb_classes, method='product'):
 
         class_info = load_ids()
         self.id2superclass = {v['id']: v['superclass'] for v in class_info.values()}
 
         self.prior_matrix = self.load_matrix(matrix_path)
 
-        self.nb_classes = 20
+        self.nb_classes = nb_classes
 
         self.threshold = 0.5
         self.combination_method = method
@@ -40,7 +40,7 @@ class ConditionalPrior(BasePrior):
     def compute_pk(self, y_true):
         '''
         y_true: (BS, K)
-        output ok: (BS, K)
+        output ok: (BS, K, 2)
 
         For each line (each example, we compute the example pk which is of size K)
         1 - for each value of the pk (one scalar), we compute the 'other key', which is of the form 'a0_i1_v1'
@@ -48,8 +48,10 @@ class ConditionalPrior(BasePrior):
 
         TODO:
         '''
-        pk = np.zeros_like(y_true, dtype=np.float64)
-        assert pk.shape == (cfg.BATCH_SIZE, self.nb_classes), 'wrong pk shape %s' % str(pk.shape)
+        y_true = np.asarray(y_true)
+
+        pk = np.zeros(y_true.shape + (2,), dtype=np.float64)
+        assert pk.shape == (cfg.BATCH_SIZE, self.nb_classes, 2), 'wrong pk shape %s' % str(pk.shape)
 
         for i, example in enumerate(y_true):
             assert example.shape == (self.nb_classes,), 'wrong example shape %s' % str(example.shape)
@@ -59,9 +61,11 @@ class ConditionalPrior(BasePrior):
                 # get the keys
                 class_letter, class_nb, context_key = self.get_keys(j, onehot_example)
 
-                # retrieve the conditional probability
-                prob = self.get_conditional(class_letter, class_nb, context_key)
-                pk[i][j] = prob
+                # retrieve the conditional probability + normalization
+                prob0 = self.get_conditional(class_letter, 0, context_key)
+                prob1 = self.get_conditional(class_letter, 1, context_key)
+                pk[i][j][0] = prob0 / (prob0 + prob1)
+                pk[i][j][1] = prob1 / (prob0 + prob1)
 
         return pk
 
@@ -96,9 +100,6 @@ class ConditionalPrior(BasePrior):
     def get_conditional(self, class_letter, class_nb, context_key):
         '''
         '''
-        if class_nb == 0:
-            return 1 - self.get_conditional(class_letter, 1, context_key)
-
         class_key = '%s%s' % (class_letter, class_nb)
         assert class_key in self.prior_matrix, 'something got very wrong with the prior matrix (key %s)' % class_key
 
@@ -120,10 +121,22 @@ class ConditionalPrior(BasePrior):
         - product: just element wise product of the visual info (sk) and the prior (pk)
         - sigmoid
         - softmax
-        '''
-        return sk * pk
 
-    def pick_relabel(self, yk, y_true):
+        pk (BS, K, 2)
+        sk (BS, K)
+
+        output: (BS, K)
+        '''
+        sk = np.asarray(sk)
+
+        assert sk.shape == (cfg.BATCH_SIZE, self.nb_classes), 'wrong sk shape %s' % str(sk.shape)
+        assert pk.shape == (cfg.BATCH_SIZE, self.nb_classes, 2), 'wrong pk shape %s' % str(pk.shape)
+
+        ones_yk = sk * pk[:, :, 1]
+        zeros_yk = (1 - sk) * pk[:, :, 0]
+        return ones_yk / (ones_yk + zeros_yk)
+
+    def pick_relabel(self, y_pred, yk, y_true):
         '''
         yk: prior-weighted outputs
         y_true: true batch (with zeros where the label is missing)
@@ -132,14 +145,16 @@ class ConditionalPrior(BasePrior):
         2. order those values and get the corresponding indexes
         3. take the 'best' 33% of these values and put a 1 in the relabel output at these indexes
         '''
+        y_pred = np.asarray(y_pred)
 
+        assert y_pred.shape == (cfg.BATCH_SIZE, self.nb_classes), 'wrong y_pred shape %s' % str(y_pred.shape)
         assert yk.shape == (cfg.BATCH_SIZE, self.nb_classes), 'wrong yk shape %s' % str(yk.shape)
         assert y_true.shape == (cfg.BATCH_SIZE, self.nb_classes), 'wrong y_true shape %s' % str(y_true.shape)
 
         relabel_batch = np.copy(y_true)
 
         # find and sort the relevant values of the outputs
-        relevant_yk = np.where(y_true == 0, yk, 0)   # consider only the values for missing labels
+        relevant_yk = np.where((y_true == 0) & (y_pred > 0.5), yk, 0)   # consider only the values for missing labels and for which the initial prediction is > 0.5
         sorted_indexes = np.argsort(relevant_yk, axis=None)   # the indexes are flattened
         sorted_values = [relevant_yk[i // self.nb_classes][i % self.nb_classes] for i in sorted_indexes]
 

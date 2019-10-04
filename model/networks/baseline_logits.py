@@ -2,7 +2,7 @@
 from tensorflow.keras import Model, Input
 from tensorflow.keras.applications import ResNet50
 
-from tensorflow.keras.layers import Dense, Flatten, GlobalAveragePooling2D
+from tensorflow.keras.layers import Dense, GlobalAveragePooling2D, Activation
 
 from model.losses import get_loss
 from model.metrics.map import MAP
@@ -11,7 +11,7 @@ from model.networks import BaseModel
 from config.config import cfg
 
 
-class Baseline(BaseModel):
+class BaselineLogits(BaseModel):
 
     def __init__(self, exp_folder, n_classes, p=1):
         '''
@@ -44,14 +44,18 @@ class Baseline(BaseModel):
 
         # dense + sigmoid for multilabel classification
         x = GlobalAveragePooling2D()(x)
-        output = Dense(self.n_classes, activation='sigmoid')(x)
+        logits = Dense(self.n_classes)(x)
 
-        self.model = Model(inputs=[inp_img, inp_ids], outputs=output)
+        output = Activation('sigmoid')(logits)
+
+        self.model = Model(inputs=[inp_img, inp_ids], outputs=[output, logits])
         self.log('Outputs shape %s' % str(self.model.output_shape))
 
         optimizer = self.build_optimizer()
         loss = get_loss(cfg.ARCHI.LOSS, params={'prop': self.p})
-        self.model.compile(loss=loss, optimizer=optimizer, metrics=['binary_accuracy'])
+        noop_loss = get_loss('noop')
+
+        self.model.compile(loss=[loss, noop_loss], optimizer=optimizer, metrics=['binary_accuracy'])
 
         if self.verbose:
             self.log('Final model summary')
