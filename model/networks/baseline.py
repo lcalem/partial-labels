@@ -1,16 +1,4 @@
 
-# because tensorflow.keras.applications doesn't have ResNet101 for some reason we have this workaround
-# ONLY works with keras_applications=1.0.7 since 1.0.6 doesn't have ResNet101 an 1.0.8 removed the set_keras_submodules function
-import tensorflow
-
-import keras_applications
-keras_applications.set_keras_submodules(
-    backend=tensorflow.keras.backend,
-    layers=tensorflow.keras.layers,
-    models=tensorflow.keras.models,
-    utils=tensorflow.keras.utils
-)
-
 from tensorflow.keras import Model, Input
 from tensorflow.keras.applications import ResNet50
 
@@ -71,7 +59,8 @@ class Baseline(BaseModel):
 
     def build_classifier(self):
         if cfg.ARCHI.CLASSIFIER == 'resnet101':
-            resnet = keras_applications.resnet.ResNet101(include_top=False, weights='imagenet', input_shape=self.input_shape)
+            from tensorflow.keras.applications import ResNet101
+            resnet = ResNet101(include_top=False, weights='imagenet', input_shape=self.input_shape)
         elif cfg.ARCHI.CLASSIFIER == 'resnet50':
             resnet = ResNet50(include_top=False, weights='imagenet', input_shape=self.input_shape)
 
