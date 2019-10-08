@@ -43,7 +43,6 @@ class Launcher():
         self.exp_folder = exp_folder   # still not sure this should go in config or not
         self.data_dir = cfg.DATASET.PATH
         self.relabel = cfg.RELABEL.ACTIVE
-        self.relabel_mode = cfg.RELABEL.MODE
         self.initial_weights = initial_weights
 
         if percent is None:
@@ -108,8 +107,9 @@ class Launcher():
         5. train
         '''
 
-        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size=cfg.BATCH_SIZE)
+        self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, batch_size=cfg.BATCH_SIZE, p=p)
         self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size=cfg.TEST_BATCH_SIZE)
+
         # model
         self.build_model(self.dataset_train.nb_classes, p)
 
@@ -377,7 +377,7 @@ class Launcher():
 # python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 90,70,50,30,10
 # python3 launch.py -o pv_partial50_sgd_448lrs -g 3 -p 90,70,50,30,10
 # python3 launch.py -o coco14_baseline_lrs_nomap -g 3 -p 90
-# python3 launch.py -o pv_relabel_base_nocurriculum -g 1 -p 10
+# python3 launch.py -o pv_relabel_prior3 -g 0 -p 10
 # python3 launch.py -o relabel_test -g 0 -p 10
 # python3 launch.py -o coco14_baseline -g 0 -p 100
 # python3 launch.py -o pv_baseline -g 0 -p 10

@@ -6,6 +6,3 @@ class BasePrior():
 
     def combine(self, sk, pk):
         raise NotImplementedError
-
-    def pick_relabel(self, yk, y_true):
-        raise NotImplementedError
