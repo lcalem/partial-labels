@@ -22,6 +22,7 @@ class BaselineRelabeling(ClassifRelabelator):
 
         # check on options
         assert selection_type in ['threshold', 'proportion', 'positives']
+        assert 0.0 <= threshold <= 1.0
         self.selection_type = selection_type
         self.threshold = threshold
 
@@ -39,17 +40,29 @@ class BaselineRelabeling(ClassifRelabelator):
 
         # find the relevant values of the outputs
         if self.selection_type == 'threshold':
-            selection_criterion = (y_batch == 0) & ((logits > self.threshold) | (logits < - self.threshold))
+            selection_criterion = (y_batch == 0) & ((logits >= self.threshold) | (logits < - self.threshold))
             relabel_batch = np.where(selection_criterion, np.sign(logits), y_batch)
+            nb_added = np.sum(selection_criterion)
 
         elif self.selection_type == 'proportion':
-            pass
+            relevant_sk = np.where((y_batch == 0), np.abs(logits), 0)
+            sorted_indexes = np.argsort(relevant_sk, axis=None)   # the indexes are flattened
+            sorted_values = [relevant_sk[i // self.nb_classes][i % self.nb_classes] for i in sorted_indexes]
+
+            # take the best values and find corresponding indexes
+            nb_ok_indexes = int((np.count_nonzero(sorted_values)) * self.threshold)
+            final_indexes = [(i // self.nb_classes, i % self.nb_classes) for i in sorted_indexes[len(sorted_values) - nb_ok_indexes: len(sorted_values)]]
+
+            # put the selected values as 1 in the relabel batch
+            xs = [elt[0] for elt in final_indexes]
+            ys = [elt[1] for elt in final_indexes]
+            relabel_batch[(xs, ys)] = np.sign(logits[(xs, ys)])
+            nb_added = nb_ok_indexes
 
         elif self.selection_type == 'positives':
-            selection_criterion = (y_batch == 0) & (logits > self.threshold)
+            selection_criterion = (y_batch == 0) & (logits >= self.threshold)
             relabel_batch = np.where(selection_criterion, 1, y_batch)
-
-        nb_added = np.sum(selection_criterion)
+            nb_added = np.sum(selection_criterion)
 
         # sanity checks (check that the added values are only ones and that they are only where there was a 0 before)
         check = np.where(y_batch != relabel_batch, relabel_batch, 0)
