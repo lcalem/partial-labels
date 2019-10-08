@@ -8,7 +8,13 @@ class Relabelator(object):
     TODO: change the name for clean version
     '''
 
-    def relabel(self, x_batch, y_pred, y_batch):
+    def init_step(self, relabel_step):
+        raise NotImplementedError
+    
+    def relabel(self, x_batch, y_batch, y_pred):
+        raise NotImplementedError
+
+    def finish_step(self, relabel_step):
         raise NotImplementedError
 
 
