@@ -10,7 +10,7 @@ class Relabelator(object):
 
     def init_step(self, relabel_step):
         raise NotImplementedError
-    
+
     def relabel(self, x_batch, y_batch, y_pred):
         raise NotImplementedError
 
@@ -29,6 +29,9 @@ class ClassifRelabelator(Relabelator):
         os.makedirs(os.path.dirname(self.targets_path), exist_ok=True)
 
         self.total_added = 0
+        self.positive_added = 0
+        self.negative_added = 0
+
         self.seen_keys = set()
         self.relabel_step = relabel_step_nb
 
@@ -39,7 +42,7 @@ class ClassifRelabelator(Relabelator):
 
         relabel_logpath = os.path.join(self.exp_folder, 'relabeling', 'log_relabeling.csv')
         with open(relabel_logpath, 'a') as f_log:
-            f_log.write('%s,%s,%s\n' % (self.p, self.relabel_step, self.total_added))
+            f_log.write('%s,%s,%s,%s,%s\n' % (self.p, self.relabel_step, self.total_added, self.positive_added, self.negative_added))
 
         log.printcn(log.OKBLUE, '\tAdded %s labels during relabeling, logging into %s' % (self.total_added, relabel_logpath))
         log.printcn(log.OKBLUE, '\tNew dataset path %s' % (self.targets_path))
