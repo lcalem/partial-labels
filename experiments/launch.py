@@ -177,16 +177,15 @@ class Launcher():
         Selects the right class for managing the relabeling depending on the option specified
         '''
         if cfg.RELABEL.NAME == 'relabel_prior':
-            return relabel.PriorRelabeling(self.exp_folder, p, nb_classes, cfg.RELABEL.OPTIONS.TYPE, cfg.RELABEL.OPTIONS.THRESHOLD)
-        elif cfg.RELABEL.NAME == 'relabel_sk':
-            return relabel.SkRelabeling(self.exp_folder, p, nb_classes)
+            return relabel.PriorRelabeling(self.exp_folder, p, nb_classes, cfg.RELABEL.OPTIONS)
+        elif cfg.RELABEL.NAME == 'relabel_visual':
+            return relabel.VisualRelabeling(self.exp_folder, p, nb_classes, cfg.RELABEL.OPTIONS)
         elif cfg.RELABEL.NAME == 'relabel_all':
             return relabel.AllSkRelabeling(self.exp_folder, p, nb_classes)
         elif cfg.RELABEL.NAME == 'relabel_baseline':
             return relabel.BaselineRelabeling(self.exp_folder, p, nb_classes, cfg.RELABEL.OPTIONS.TYPE, cfg.RELABEL.OPTIONS.THRESHOLD)
         elif cfg.RELABEL.NAME == 'segmentation':
             return relabel.SegmentationRelabeling(self.exp_folder, self.data_dir, nb_classes, p)
-
 
     def build_callbacks(self, prop, relabel_step=None):
         '''
@@ -261,18 +260,11 @@ class Launcher():
         self.dataset_train.update_targets(targets_path)
 
 
-
-# python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 100
-# python3 launch.py -o pv_baseline50_sgd_448lrs -g 2 -p 90,70,50,30,10
-# python3 launch.py -o pv_partial50_sgd_448lrs -g 3 -p 90,70,50,30,10
-# python3 launch.py -o coco14_baseline_lrs_nomap -g 3 -p 90
 # python3 launch.py -o pv_relabel_prior3 -g 0 -p 10
-# python3 launch.py -o relabel_test -g 0 -p 10
+# python3 launch.py -o relabel_test -g 1 -p 10
 # python3 launch.py -o coco14_baseline -g 0 -p 100
 # python3 launch.py -o pv_baseline -g 0 -p 10
-# python3 launch.py -o pv_relabel_base_b -g 0 -p 10
-# python3 launch.py -o pv_baseline101_test -g 2 -p 10
-# python3 launch.py -o pv_101_relabel_2steps -g 0 -p 10
+# python3 launch.py -o pv_relabel_p3_adjusted -g 0 -p 10
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
