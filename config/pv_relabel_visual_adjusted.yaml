@@ -5,12 +5,16 @@ archi:
 dataset:
     name: pascalvoc
     path: /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/
-    train: train
-    test: val
+    train: trainval
+    test: test
 relabel:
     active: true
     name: relabel_visual
-    steps: 2
+    steps: 3
+    epochs:
+        - 15
+        - 5
+        - 5
     options:
         type: proportion
         prop_pos: 0.044
@@ -20,11 +24,8 @@ image:
 batch_size: 16
 test_batch_size: all
 training:
-    n_epochs: 1
     optimizer: sgd
     start_lr: 0.01
     skip_val: true
-    steps_per_epoch: 10
 callback:
-    val_cb: NULL
-cleanup: true
+    val_cb: map

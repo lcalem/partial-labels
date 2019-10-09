@@ -9,7 +9,7 @@ dataset:
     test: test
 relabel:
     active: true
-    name: relabel_sk
+    name: relabel_visual
     steps: 3
 image:
     img_size: 448
