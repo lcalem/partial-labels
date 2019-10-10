@@ -59,16 +59,16 @@ class VisualRelabeling(ClassifRelabelator):
         self.positive_added += nb_positive_indexes
         self.negative_added += nb_negative_indexes
 
-        print('y batch')
-        print(y_batch)
+        # print('y batch')
+        # print(y_batch)
 
-        print('y pred')
-        print(y_pred)
+        # print('y pred')
+        # print(y_pred)
 
-        print('relabeling')
-        print(relabel_batch)
+        # print('relabeling')
+        # print(relabel_batch)
 
-        raise
+        # raise
 
         # write batch to relabel csv
         for i in range(len(relabel_batch)):
