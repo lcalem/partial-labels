@@ -32,7 +32,7 @@ def compute_prior_map():
     data_dir = '/home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/'
     weights_path = '/home/caleml/partial_experiments/exp_20191009_1546_baseline_logits/weights_10_015_00.h5'
     gt_path = os.path.join(data_dir, 'Annotations', 'annotations_multilabel_trainval_partial_100_1.csv')
-    prior_path = '/home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/Annotations/prior_matrix3_trainval_partial_10_1.json'
+    prior_path = '/home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/Annotations/prior_matrix4_trainval_partial_10_1.json'
 
     # 1. load model
     model = BaselineLogits('%s/partial_experiments/' % os.environ['HOME'], nb_classes, prop)
@@ -151,7 +151,7 @@ def load_annotations(annotations_path):
     return samples
 
 
-# python3 prior_map.py 1
+# python3 prior_map.py 0
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = sys.argv[1]
     compute_prior_map()

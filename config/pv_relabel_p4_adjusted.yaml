@@ -1,0 +1,33 @@
+archi:
+    name: baseline_logits
+    classifier: resnet50
+    loss: bce
+dataset:
+    name: pascalvoc
+    path: /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/
+    train: trainval
+    test: test
+relabel:
+    active: true
+    name: relabel_prior
+    steps: 3
+    epochs:
+        - 15
+        - 5
+        - 5
+    options:
+        type: proportion_yf
+        prop_pos: 0.044
+        prop_neg: 0.78
+    prior: conditional
+    prior_path: /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/Annotations/prior_matrix4_trainval_partial_$PROP_1.json
+image:
+    img_size: 448
+batch_size: 16
+test_batch_size: all
+training:
+    optimizer: sgd
+    start_lr: 0.01
+    skip_val: true
+callback:
+    val_cb: map
