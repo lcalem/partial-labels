@@ -263,8 +263,8 @@ class Launcher():
 # python3 launch.py -o pv_relabel_prior3 -g 0 -p 10
 # python3 launch.py -o relabel_test -g 1 -p 10
 # python3 launch.py -o coco14_baseline -g 0 -p 100
-# python3 launch.py -o pv_baseline -g 0 -p 10
-# python3 launch.py -o pv_relabel_p3_adjusted -g 0 -p 10
+# python3 launch.py -o pv_relabel_visual_adjusted -g 1 -p 10
+# python3 launch.py -o pv_relabel_p4_adjusted -g 2 -p 10
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
@@ -279,7 +279,7 @@ if __name__ == '__main__':
     config_utils.update_config(options)
 
     # init
-    exp_folder = utils.exp_init(' '.join(sys.argv), exp_name=args.exp_name)
+    exp_folder = utils.exp_init(' '.join(sys.argv), exp_name=(args.exp_name or args.options))
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
