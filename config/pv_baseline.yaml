@@ -1,5 +1,5 @@
 archi:
-    name: baseline
+    name: baseline_logits
     classifier: resnet50
     loss: bce
 dataset:
@@ -12,7 +12,7 @@ image:
 batch_size: 16
 test_batch_size: all
 training:
-    n_epochs: 20
+    n_epochs: 10
     optimizer: sgd
     start_lr: 0.01
     skip_val: true

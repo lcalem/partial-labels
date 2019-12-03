@@ -19,8 +19,8 @@ relabel:
         type: proportion_yf
         prop_pos: 0.044
         prop_neg: 0.78
-        prior: conditional
-        prior_path: /home/caleml/datasets/pascalvoc/VOCdevkit/VOC2007/Annotations/prior_matrix4_trainval_partial_$PROP_1.json
+        prior: conditional_coco
+        prior_path: /home/caleml/datasets/mscoco/annotations/multilabel_train2014_partial_100_1.json
 image:
     img_size: 448
 batch_size: 16

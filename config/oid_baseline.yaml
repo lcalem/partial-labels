@@ -1,0 +1,21 @@
+archi:
+    name: frcnn_vanilla
+    extractor: resnet50
+    num_rois: 4
+    rpn_stride: 16
+dataset:
+    name: oid
+    path: /local/DEEPLEARNING/oid/
+    train: train
+    test: val
+image:
+    img_size: 448
+batch_size: 8
+test_batch_size: all
+training:
+    n_epochs: 10
+    optimizer: sgd
+    start_lr: 0.01
+    skip_val: true
+callback:
+    val_cb: map
