@@ -23,7 +23,7 @@ class Dataset(Sequence):
                  p=None):
         '''
         Only multilabel for now
-        - dataset_path:  blabla/VOCdevkit/VOC2007/
+        - dataset_path: for example blabla/VOCdevkit/VOC2007/
         - mode: train / val / trainval / test -> file to be loaded
         - p: known labels proportion -> will be used to open the correct partial dataset file (only for training)
 
