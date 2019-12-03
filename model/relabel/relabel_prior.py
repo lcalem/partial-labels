@@ -13,7 +13,7 @@ from pprint import pprint
 
 class PriorRelabeling(ClassifRelabelator):
 
-    def __init__(self, exp_folder, p, nb_classes, selection_params):
+    def __init__(self, exp_folder, p, nb_classes, params):
         '''
         Selection types:
             - proportion_ones:
@@ -25,22 +25,35 @@ class PriorRelabeling(ClassifRelabelator):
         self.exp_folder = exp_folder
         self.p = p
         self.nb_classes = nb_classes
-        self.prior = self.load_prior(cfg.RELABEL.PRIOR)
 
-        selection_params = {k.lower(): v for k, v in selection_params.items()}
-        self.selection_type = selection_params['type']
+        params = {k.lower(): v for k, v in params.items()}
+        self.selection_type = params['type']
         assert self.selection_type in ['proportion_ones', 'proportion_yf']
-        self.selection_params = selection_params
+        self.selection_params = params
 
-    def load_prior(self, name):
-        if name == 'conditional':
-            prior_path = cfg.RELABEL.PRIOR_PATH
+        self.prior = self.load_prior(params['prior'], params['prior_path'], params['prior_combination'])
+
+    def load_prior(self, prior_type, prior_path, combination):
+        '''
+        TODO: separation ptype!
+        '''
+        if prior_type.startswith('conditional'):
+            ptype = prior_type.split('_')[1]
             prior_path = prior_path.replace('$PROP', str(self.p))
-            return priors.ConditionalPrior(prior_path, nb_classes=self.nb_classes)
+            kwargs = {
+                'nb_classes': self.nb_classes,
+                'method': combination,
+                'prior_type': ptype
+            }
+            if combination == 'alpha':
+                kwargs['alpha'] = cfg.RELABEL.OPTIONS.PRIOR_ALPHA
+
+            return priors.ConditionalPrior(prior_path, **kwargs)
 
     def relabel(self, x_batch, y_batch, y_pred):
         '''
-        y_pred: (1, batch_size, K) -> have to take y_pred[0]
+        --- use logit space ---
+        y_pred: (1, batch_size, K) -> have to take y_pred[1] to get the logits
         x_batch is used for image ids
 
         Steps for relabeling:
@@ -56,16 +69,16 @@ class PriorRelabeling(ClassifRelabelator):
         '''
 
         y_true = y_batch[0]
-        y_pred = np.asarray(y_pred[0])  # y_pred gives both the output and the logits, the [0] is to take the predictions
+        y_v_logits = np.asarray(y_pred[1])
 
         # print('shape of y_pred %s' % str(y_pred.shape))
-        p_k = self.prior.compute_pk(y_true)
-        y_f = self.prior.combine(y_pred, p_k)
+        p_k_logits = self.prior.compute_pk_logits(y_true)
+        y_f = self.prior.combine(y_v_logits, p_k_logits)
 
         # relabeling, nb_added = self.prior.pick_relabel(y_pred, y_k, y_batch[0])  # (BS, K)
 
-        assert y_pred.shape == (cfg.BATCH_SIZE, self.nb_classes),   'wrong y_pred shape %s' % str(y_pred.shape)
-        assert y_f.shape == (cfg.BATCH_SIZE, self.nb_classes),      'wrong yk shape %s' % str(y_k.shape)
+        assert y_v_logits.shape == (cfg.BATCH_SIZE, self.nb_classes),   'wrong logits shape %s' % str(y_v_logits.shape)
+        assert y_f.shape == (cfg.BATCH_SIZE, self.nb_classes),      'wrong yk shape %s' % str(y_f.shape)
         assert y_true.shape == (cfg.BATCH_SIZE, self.nb_classes),   'wrong y_true shape %s' % str(y_true.shape)
 
         relabel_batch = np.copy(y_true)
@@ -75,7 +88,7 @@ class PriorRelabeling(ClassifRelabelator):
         # find and sort the relevant values of the outputs
         if self.selection_type == 'proportion_ones':
 
-            relevant_yf = np.where((y_true == 0) & (y_pred > 0.5), y_f, 0)   # consider only the values for missing labels and for which the initial prediction is > 0.5
+            relevant_yf = np.where((y_true == 0) & (y_v_logits > 0), y_f, 0)   # consider only the values for missing labels and for which the initial prediction is > 0.5
             sorted_indexes = np.argsort(relevant_yf, axis=None)   # the indexes are flattened
             sorted_values = [relevant_yf[i // self.nb_classes][i % self.nb_classes] for i in sorted_indexes]
 
@@ -136,8 +149,8 @@ class PriorRelabeling(ClassifRelabelator):
         # print('y pred')
         # print(y_pred)
 
-        # print('pk')
-        # print(p_k)
+        # print('pk logits')
+        # print(p_k_logits)
 
         # print('y_k')
         # print(y_k)
