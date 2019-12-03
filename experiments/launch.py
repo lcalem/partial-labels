@@ -112,7 +112,6 @@ class Launcher():
 
         # model
         self.build_model(self.dataset_train.nb_classes, p)
-
         self.relabelator = self.load_relabelator(p, self.dataset_train.nb_classes)
 
         for relabel_step in range(cfg.RELABEL.STEPS):
@@ -125,7 +124,6 @@ class Launcher():
             n_epochs = cfg.TRAINING.N_EPOCHS if cfg.RELABEL.EPOCHS is None else cfg.RELABEL.EPOCHS[relabel_step]
             steps_per_epoch = len(self.dataset_train) if not cfg.TRAINING.STEPS_PER_EPOCH else cfg.TRAINING.STEPS_PER_EPOCH
             self.model.train(self.dataset_train, steps_per_epoch=steps_per_epoch, cb_list=cb_list, n_epochs=n_epochs, dataset_val=self.dataset_test)
-            # self.model.train(self.dataset_train, steps_per_epoch=10, cb_list=cb_list)
 
             # relabeling
             self.relabel_dataset(relabel_step)
@@ -264,7 +262,7 @@ class Launcher():
 # python3 launch.py -o relabel_test -g 1 -p 10
 # python3 launch.py -o coco14_baseline -g 0 -p 100
 # python3 launch.py -o pv_relabel_visual_adjusted -g 1 -p 10
-# python3 launch.py -o pv_relabel_p4_adjusted -g 2 -p 10
+# python3 launch.py -o pv_relabel_pcoco -g 0 -p 10
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
