@@ -14,7 +14,8 @@ def load_ids():
         'val_img': 337,
         'val_obj': 625,
         'superclass': 'vehicle',
-        'short': 'cr'
+        'short': 'cr',
+        'coco_id': 2
     }
 
     '''

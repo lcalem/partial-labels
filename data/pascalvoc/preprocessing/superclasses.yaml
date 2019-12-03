@@ -1,0 +1,82 @@
+aeroplane:
+    pascal:
+        - aeroplane
+    coco:
+        - airplane
+ground_vehicle:
+    pascal:
+        - bicycle
+        - bus
+        - car
+        - motorbike
+    coco:
+        - bicycle
+        - car
+        - motorcycle
+        - bus
+        - truck
+boat:
+    pascal:
+        - boat
+    coco:
+        - boat
+object:
+    pascal:
+        - bottle
+    coco:
+        - bottle
+        - wine glass
+        - cup
+        - fork
+        - knife
+        - spoon
+        - bowl
+small_animal:
+    pascal:
+        - bird
+        - cat
+        - dog
+    coco:
+        - bird
+        - cat
+        - dog
+big_animal:
+    pascal:
+        - cow
+        - horse
+        - sheep
+    coco:
+        - horse
+        - sheep
+        - cow
+        - elephant
+        - bear
+        - zebra
+        - giraffe
+furniture:
+    pascal:
+        - chair
+        - diningtable
+        - sofa
+        - tv
+    coco:
+        - chair
+        - couch
+        - bed
+        - dining table
+        - tv
+person:
+    pascal:
+        - person
+    coco:
+        - person
+plant:
+    pascal:
+        - pottedplant
+    coco:
+        - potted plant
+train:
+    pascal:
+        - train
+    coco:
+        - train
