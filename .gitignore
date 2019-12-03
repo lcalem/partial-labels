@@ -3,3 +3,4 @@
 __pycache__/
 .ipynb_checkpoints*
 *ms_coco_formatter/*
+*.h5
