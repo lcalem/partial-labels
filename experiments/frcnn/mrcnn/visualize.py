@@ -135,7 +135,8 @@ def display_instances(image,
         if not np.any(bboxes[i]):
             # Skip this instance. Has no bbox. Likely lost in image cropping.
             continue
-        y1, x1, y2, x2 = bboxes[i]
+        # y1, x1, y2, x2 = bboxes[i]    # seriously who does that
+        x1, y1, x2, y2 = bboxes[i]
         if show_bbox:
             p = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=2, alpha=0.7, linestyle="dashed", edgecolor=color, facecolor='none')
             ax.add_patch(p)
@@ -148,8 +149,8 @@ def display_instances(image,
             caption = "{} {:.3f}".format(label, score) if score else label
         else:
             caption = captions[i]
-        ax.text(x1, y1 + 8, caption,
-                color='w', size=11, backgroundcolor="none")
+        # print('%s at %s' % (caption, str(bboxes[i])))
+        ax.text(x1, y1 + 8, caption, color='w', size=11, backgroundcolor="none")
 
     ax.imshow(masked_image.astype(np.uint8))
 

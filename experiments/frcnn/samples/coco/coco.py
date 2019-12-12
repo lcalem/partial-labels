@@ -54,6 +54,7 @@ ROOT_DIR = os.path.abspath("../../")
 sys.path.append(ROOT_DIR)  # To find local version of the library
 from mrcnn.config import Config
 from mrcnn import model as modellib, utils
+from mrcnn import dataset
 
 # Path to trained weights file
 COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
@@ -91,7 +92,7 @@ class CocoConfig(Config):
 #  Dataset
 ############################################################
 
-class CocoDataset(utils.Dataset):
+class CocoDataset(dataset.Dataset):
     def load_coco(self, dataset_dir, subset, year=DEFAULT_DATASET_YEAR, class_ids=None,
                   class_map=None, return_coco=False, auto_download=False):
         """Load a subset of the COCO dataset.

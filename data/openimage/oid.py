@@ -57,7 +57,7 @@ class OIDGenerator(Dataset):
         '''
         pass
 
-    def load_annotations(self, annotations_path):
+    def load_annotations(annotations_path):
         '''
         one annotation csv line is like:
         img_id,folder,class_id,xmin,ymin,xmax,ymax
@@ -76,16 +76,26 @@ class OIDGenerator(Dataset):
         '''
 
         samples = defaultdict(lambda: defaultdict(list))
+        class_data = load_class_data()
 
         # multilabel annotations
         with open(annotations_path, 'r') as f_in:
             for line in f_in:
                 parts = line.strip().split(',')
                 img_id = parts[0]
-                ground_truth_cls = self.one_hotify_gt(parts[2])
+                class_id = int(parts[2])
+                ground_truth_cls = one_hotify_gt(class_id)
 
                 samples[img_id]['multilabel'].append(ground_truth_cls)
-                samples[img_id]['bboxes'].append((parts[3], parts[4], parts[5], parts[6]))
+                samples[img_id]['bboxes'].append((float(parts[3]), float(parts[4]), float(parts[5]), float(parts[6])))
+                samples[img_id]['classes'].append((class_data[class_id]['id'], class_data[class_id]['name']))
+                
+                size = (parts[7], parts[8])
+                
+                if samples[img_id]['size'] == list(): # default 
+                    samples[img_id]['size'] = size 
+                else:
+                    assert samples[img_id]['size'] == size    # it should always be the same
 
         return samples
 
