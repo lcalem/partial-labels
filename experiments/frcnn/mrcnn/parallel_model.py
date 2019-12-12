@@ -125,7 +125,7 @@ if __name__ == "__main__":
     # Directory to save logs and trained model
     MODEL_DIR = os.path.join(ROOT_DIR, "logs")
 
-    def build_model(x_train, num_classes):
+    def build_model(x_train, nb_classes):
         # Reset default graph. Keras leaves old ops in the graph,
         # which are ignored for execution but clutter graph
         # visualization in TensorBoard.
@@ -139,7 +139,7 @@ if __name__ == "__main__":
         x = KL.MaxPooling2D(pool_size=(2, 2), name="pool1")(x)
         x = KL.Flatten(name="flat1")(x)
         x = KL.Dense(128, activation='relu', name="dense1")(x)
-        x = KL.Dense(num_classes, activation='softmax', name="dense2")(x)
+        x = KL.Dense(nb_classes, activation='softmax', name="dense2")(x)
 
         return KM.Model(inputs, x, "digit_classifier_model")
 

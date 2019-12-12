@@ -16,8 +16,8 @@ def refine_detections_graph(rois, probs, deltas, window, config):
 
     Inputs:
         rois: [N, (y1, x1, y2, x2)] in normalized coordinates
-        probs: [N, num_classes]. Class probabilities.
-        deltas: [N, num_classes, (dy, dx, log(dh), log(dw))]. Class-specific
+        probs: [N, nb_classes]. Class probabilities.
+        deltas: [N, nb_classes, (dy, dx, log(dh), log(dw))]. Class-specific
                 bounding box deltas.
         window: (y1, x1, y2, x2) in normalized coordinates. The part of the image
             that contains the image excluding the padding.

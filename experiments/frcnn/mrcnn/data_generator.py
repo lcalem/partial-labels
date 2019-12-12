@@ -42,6 +42,7 @@ def data_generator(dataset,
     Returns a Python generator. Upon calling next() on it, the
     generator returns two lists, inputs and outputs. The contents
     of the lists differs depending on the received arguments:
+
     inputs list:
     - images: [batch, H, W, C]
     - image_meta: [batch, (meta data)] Image details. See compose_image_meta()
@@ -214,7 +215,7 @@ def load_image_gt(dataset,
 
     # Active classes
     # Different datasets have different classes, so track the classes supported in the dataset of this image.
-    active_class_ids = np.zeros([dataset.num_classes], dtype=np.int32)
+    active_class_ids = np.zeros([dataset.nb_classes], dtype=np.int32)
     source_class_ids = dataset.source_class_ids[dataset.image_info[image_id]["source"]]
     active_class_ids[source_class_ids] = 1
 
@@ -238,7 +239,7 @@ def build_detection_targets(rpn_rois, gt_class_ids, gt_boxes, config):
     Returns:
     rois: [TRAIN_ROIS_PER_IMAGE, (y1, x1, y2, x2)]
     class_ids: [TRAIN_ROIS_PER_IMAGE]. Integer class IDs.
-    bboxes: [TRAIN_ROIS_PER_IMAGE, NUM_CLASSES, (y, x, log(h), log(w))]. Class-specific
+    bboxes: [TRAIN_ROIS_PER_IMAGE, NB_CLASSES, (y, x, log(h), log(w))]. Class-specific
             bbox refinements.
     '''
 
@@ -333,7 +334,7 @@ def build_detection_targets(rpn_rois, gt_class_ids, gt_boxes, config):
 
     # Class-aware bbox deltas. [y, x, log(h), log(w)]
     bboxes = np.zeros((config.TRAIN_ROIS_PER_IMAGE,
-                       config.NUM_CLASSES, 4), dtype=np.float32)
+                       config.NB_CLASSES, 4), dtype=np.float32)
     pos_ids = np.where(roi_gt_class_ids > 0)[0]
     bboxes[pos_ids, roi_gt_class_ids[pos_ids]] = utils.box_refinement(
         rois[pos_ids], roi_gt_boxes[pos_ids, :4])

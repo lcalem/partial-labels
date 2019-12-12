@@ -108,7 +108,7 @@ class NucleusConfig(Config):
     IMAGES_PER_GPU = 6
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 1  # Background + nucleus
+    NB_CLASSES = 1 + 1  # Background + nucleus
 
     # Number of training and validation steps per epoch
     STEPS_PER_EPOCH = (657 - len(VAL_IMAGE_IDS)) // IMAGES_PER_GPU

@@ -25,7 +25,7 @@ def compose_image_meta(image_id, original_image_shape, image_shape,
         list(image_shape) +           # size=3
         list(window) +                # size=4 (y1, x1, y2, x2) in image cooredinates
         [scale] +                     # size=1
-        list(active_class_ids)        # size=num_classes
+        list(active_class_ids)        # size=nb_classes
     )
     return meta
 
@@ -34,7 +34,7 @@ def parse_image_meta(meta):
     """Parses an array that contains image attributes to its components.
     See compose_image_meta() for more details.
 
-    meta: [batch, meta length] where meta length depends on NUM_CLASSES
+    meta: [batch, meta length] where meta length depends on NB_CLASSES
 
     Returns a dict of the parsed values.
     """

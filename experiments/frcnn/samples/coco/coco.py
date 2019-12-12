@@ -85,7 +85,7 @@ class CocoConfig(Config):
     # GPU_COUNT = 8
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 80  # COCO has 80 classes
+    NB_CLASSES = 1 + 80  # COCO has 80 classes
 
 
 ############################################################
@@ -145,6 +145,7 @@ class CocoDataset(dataset.Dataset):
                     imgIds=[i], catIds=class_ids, iscrowd=None)))
         if return_coco:
             return coco
+
 
     def auto_download(self, dataDir, dataType, dataYear):
         """Download the COCO dataset/annotations if requested.

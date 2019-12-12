@@ -237,7 +237,7 @@ class MaskRCNN():
                                                                                       mrcnn_feature_maps,
                                                                                       input_image_meta,
                                                                                       config.POOL_SIZE,
-                                                                                      config.NUM_CLASSES,
+                                                                                      config.NB_CLASSES,
                                                                                       train_bn=config.TRAIN_BN,
                                                                                       fc_layers_size=config.FPN_CLASSIF_FC_LAYERS_SIZE)
 
@@ -273,7 +273,7 @@ class MaskRCNN():
                                                                                       mrcnn_feature_maps,
                                                                                       input_image_meta,
                                                                                       config.POOL_SIZE,
-                                                                                      config.NUM_CLASSES,
+                                                                                      config.NB_CLASSES,
                                                                                       train_bn=config.TRAIN_BN,
                                                                                       fc_layers_size=config.FPN_CLASSIF_FC_LAYERS_SIZE)
 
@@ -634,7 +634,7 @@ class MaskRCNN():
             # Build image_meta
             image_meta = meta.compose_image_meta(
                 0, image.shape, molded_image.shape, window, scale,
-                np.zeros([self.config.NUM_CLASSES], dtype=np.int32))
+                np.zeros([self.config.NB_CLASSES], dtype=np.int32))
             # Append
             molded_images.append(molded_image)
             windows.append(window)
