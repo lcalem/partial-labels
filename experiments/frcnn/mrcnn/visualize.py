@@ -145,7 +145,7 @@ def display_instances(image,
         if not captions:
             class_id = class_ids[i]
             score = scores[i] if scores is not None else None
-            label = class_names[class_id]
+            label = class_names[class_id + 1]  # there is no background now
             caption = "{} {:.3f}".format(label, score) if score else label
         else:
             caption = captions[i]
