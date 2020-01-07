@@ -30,16 +30,16 @@ COCO_MODEL_URL = "https://github.com/matterport/Mask_RCNN/releases/download/v2.0
 #  Bounding Boxes
 ############################################################
 
-def extract_bboxes(mask):
+def extract_bboxes(masks):
     """
     Compute bounding boxes from masks.
-    mask: [height, width, num_instances]. Mask pixels are either 1 or 0.
+    masks: [height, width, num_instances]. Mask pixels are either 1 or 0.
 
     Returns: bbox array [num_instances, (y1, x1, y2, x2)].
     """
-    boxes = np.zeros([mask.shape[-1], 4], dtype=np.int32)
-    for i in range(mask.shape[-1]):
-        m = mask[:, :, i]
+    boxes = np.zeros([masks.shape[-1], 4], dtype=np.int32)
+    for i in range(masks.shape[-1]):
+        m = masks[:, :, i]
         # Bounding box.
         horizontal_indicies = np.where(np.any(m, axis=0))[0]
         vertical_indicies = np.where(np.any(m, axis=1))[0]
@@ -50,28 +50,31 @@ def extract_bboxes(mask):
             x2 += 1
             y2 += 1
         else:
-            # No mask for this instance. Might happen due to
-            # resizing or cropping. Set bbox to zeros
+            # No mask for this instance. Might happen due to resizing or cropping. Set bbox to zeros
             x1, x2, y1, y2 = 0, 0, 0, 0
-        boxes[i] = np.array([y1, x1, y2, x2])
+        boxes[i] = np.array([x1, y1, x2, y2])
     return boxes.astype(np.int32)
 
 
 def compute_iou(box, boxes, box_area, boxes_area):
-    """Calculates IoU of the given box with the array of the given boxes.
-    box: 1D vector [y1, x1, y2, x2]
-    boxes: [boxes_count, (y1, x1, y2, x2)]
+    '''
+    Calculates IoU of the given box with the array of the given boxes.
+    box: 1D vector (x1, y1, x2, y2)
+    boxes: [boxes_count, (x1, y1, x2, y2)]
     box_area: float. the area of 'box'
     boxes_area: array of length boxes_count.
 
     Note: the areas are passed in rather than calculated here for
     efficiency. Calculate once in the caller to avoid duplicate work.
-    """
+    '''
+
+    # intersection coords
+    x1 = np.maximum(box[0], boxes[:, 0])
+    y1 = np.maximum(box[1], boxes[:, 1])
+    x2 = np.minimum(box[2], boxes[:, 2])
+    y2 = np.minimum(box[3], boxes[:, 3])
+
     # Calculate intersection areas
-    y1 = np.maximum(box[0], boxes[:, 0])
-    y2 = np.minimum(box[2], boxes[:, 2])
-    x1 = np.maximum(box[1], boxes[:, 1])
-    x2 = np.minimum(box[3], boxes[:, 3])
     intersection = np.maximum(x2 - x1, 0) * np.maximum(y2 - y1, 0)
     union = box_area + boxes_area[:] - intersection[:]
     iou = intersection / union
@@ -80,7 +83,7 @@ def compute_iou(box, boxes, box_area, boxes_area):
 
 def compute_overlaps(boxes1, boxes2):
     """Computes IoU overlaps between two sets of boxes.
-    boxes1, boxes2: [N, (y1, x1, y2, x2)].
+    boxes1, boxes2: [N, (x1, y1, x2, y2)].
 
     For better performance, pass the largest set first and the smaller second.
     """
@@ -121,7 +124,7 @@ def compute_overlaps_masks(masks1, masks2):
 
 def non_max_suppression(boxes, scores, threshold):
     """Performs non-maximum suppression and returns indices of kept boxes.
-    boxes: [N, (y1, x1, y2, x2)]. Notice that (y2, x2) lays outside the box.
+    boxes: [N, (x1, y1, x2, y2)]. Notice that (y2, x2) lays outside the box.
     scores: 1-D array of box scores.
     threshold: Float. IoU threshold to use for filtering.
     """
@@ -130,10 +133,11 @@ def non_max_suppression(boxes, scores, threshold):
         boxes = boxes.astype(np.float32)
 
     # Compute box areas
-    y1 = boxes[:, 0]
-    x1 = boxes[:, 1]
-    y2 = boxes[:, 2]
-    x2 = boxes[:, 3]
+    x1 = boxes[:, 0]
+    y1 = boxes[:, 1]
+    x2 = boxes[:, 2]
+    y2 = boxes[:, 3]
+
     area = (y2 - y1) * (x2 - x1)
 
     # Get indicies of boxes sorted by scores (highest first)
@@ -157,83 +161,92 @@ def non_max_suppression(boxes, scores, threshold):
 
 
 def apply_box_deltas(boxes, deltas):
-    """Applies the given deltas to the given boxes.
-    boxes: [N, (y1, x1, y2, x2)]. Note that (y2, x2) is outside the box.
-    deltas: [N, (dy, dx, log(dh), log(dw))]
-    """
+    '''
+    Applies the given deltas to the given boxes.
+    boxes: [N, (x1, y1, x2, y2)]. Note that (y2, x2) is outside the box.
+    deltas: [N, (dx, dy, log(dw), log(dh))]
+    '''
     boxes = boxes.astype(np.float32)
-    # Convert to y, x, h, w
-    height = boxes[:, 2] - boxes[:, 0]
-    width = boxes[:, 3] - boxes[:, 1]
-    center_y = boxes[:, 0] + 0.5 * height
-    center_x = boxes[:, 1] + 0.5 * width
+
+    # Convert to x, y, w, h
+    width = boxes[:, 2] - boxes[:, 0]
+    height = boxes[:, 3] - boxes[:, 1]
+    center_x = boxes[:, 0] + 0.5 * width
+    center_y = boxes[:, 1] + 0.5 * height
+
     # Apply deltas
-    center_y += deltas[:, 0] * height
-    center_x += deltas[:, 1] * width
-    height *= np.exp(deltas[:, 2])
-    width *= np.exp(deltas[:, 3])
-    # Convert back to y1, x1, y2, x2
-    y1 = center_y - 0.5 * height
+    center_x += deltas[:, 0] * width
+    center_y += deltas[:, 1] * height
+    width *= np.exp(deltas[:, 2])
+    height *= np.exp(deltas[:, 3])
+
+    # Convert back to  x1, y1, x2, y2
     x1 = center_x - 0.5 * width
-    y2 = y1 + height
+    y1 = center_y - 0.5 * height
     x2 = x1 + width
-    return np.stack([y1, x1, y2, x2], axis=1)
+    y2 = y1 + height
+
+    return np.stack([x1, y1, x2, y2], axis=1)
 
 
 def box_refinement_graph(box, gt_box):
-    """Compute refinement needed to transform box to gt_box.
-    box and gt_box are [N, (y1, x1, y2, x2)]
-    """
+    '''
+    Compute refinement needed to transform box to gt_box.
+    box and gt_box are [N, (x1, y1, x2, y2)]
+    '''
     box = tf.cast(box, tf.float32)
     gt_box = tf.cast(gt_box, tf.float32)
 
-    height = box[:, 2] - box[:, 0]
-    width = box[:, 3] - box[:, 1]
-    center_y = box[:, 0] + 0.5 * height
-    center_x = box[:, 1] + 0.5 * width
+    # Convert to x, y, w, h
+    width = box[:, 2] - box[:, 0]
+    height = box[:, 3] - box[:, 1]
+    center_x = box[:, 0] + 0.5 * width
+    center_y = box[:, 1] + 0.5 * height
 
-    gt_height = gt_box[:, 2] - gt_box[:, 0]
-    gt_width = gt_box[:, 3] - gt_box[:, 1]
-    gt_center_y = gt_box[:, 0] + 0.5 * gt_height
-    gt_center_x = gt_box[:, 1] + 0.5 * gt_width
+    gt_width = gt_box[:, 2] - gt_box[:, 0]
+    gt_height = gt_box[:, 3] - gt_box[:, 1]
+    gt_center_x = gt_box[:, 0] + 0.5 * gt_width
+    gt_center_y = gt_box[:, 1] + 0.5 * gt_height
 
     dy = (gt_center_y - center_y) / height
     dx = (gt_center_x - center_x) / width
     dh = tf.log(gt_height / height)
     dw = tf.log(gt_width / width)
 
-    result = tf.stack([dy, dx, dh, dw], axis=1)
+    result = tf.stack([dx, dy, dw, dh], axis=1)
     return result
 
 
 def box_refinement(box, gt_box):
-    """Compute refinement needed to transform box to gt_box.
-    box and gt_box are [N, (y1, x1, y2, x2)]. (y2, x2) is
+    '''
+    Compute refinement needed to transform box to gt_box.
+    box and gt_box are [N, (x1, y1, x2, y2)]. (y2, x2) is
     assumed to be outside the box.
-    """
+    '''
     box = box.astype(np.float32)
     gt_box = gt_box.astype(np.float32)
 
-    height = box[:, 2] - box[:, 0]
-    width = box[:, 3] - box[:, 1]
-    center_y = box[:, 0] + 0.5 * height
-    center_x = box[:, 1] + 0.5 * width
+    width = box[:, 2] - box[:, 0]
+    height = box[:, 3] - box[:, 1]
+    center_x = box[:, 0] + 0.5 * width
+    center_y = box[:, 1] + 0.5 * height
 
-    gt_height = gt_box[:, 2] - gt_box[:, 0]
-    gt_width = gt_box[:, 3] - gt_box[:, 1]
-    gt_center_y = gt_box[:, 0] + 0.5 * gt_height
-    gt_center_x = gt_box[:, 1] + 0.5 * gt_width
+    gt_width = gt_box[:, 2] - gt_box[:, 0]
+    gt_height = gt_box[:, 3] - gt_box[:, 1]
+    gt_center_x = gt_box[:, 0] + 0.5 * gt_width
+    gt_center_y = gt_box[:, 1] + 0.5 * gt_height
 
     dy = (gt_center_y - center_y) / height
     dx = (gt_center_x - center_x) / width
     dh = np.log(gt_height / height)
     dw = np.log(gt_width / width)
 
-    return np.stack([dy, dx, dh, dw], axis=1)
+    return np.stack([dx, dy, dw, dh], axis=1)
 
 
 def resize_image(image, min_dim=None, max_dim=None, min_scale=None, mode="square"):
-    """Resizes an image keeping the aspect ratio unchanged.
+    '''
+    Resizes an image keeping the aspect ratio unchanged.
 
     min_dim: if provided, resizes the image such that it's smaller
         dimension == min_dim
@@ -257,18 +270,19 @@ def resize_image(image, min_dim=None, max_dim=None, min_scale=None, mode="square
 
     Returns:
     image: the resized image
-    window: (y1, x1, y2, x2). If max_dim is provided, padding might
+    window: (x1, y1, x2, y2). If max_dim is provided, padding might
         be inserted in the returned image. If so, this window is the
         coordinates of the image part of the full image (excluding
         the padding). The x2, y2 pixels are not included.
     scale: The scale factor used to resize the image
     padding: Padding added to the image [(top, bottom), (left, right), (0, 0)]
-    """
+    '''
+
     # Keep track of image dtype and return results in the same dtype
     image_dtype = image.dtype
-    # Default window (y1, x1, y2, x2) and default scale == 1.
+    # Default window (x1, y1, x2, y2) and default scale == 1.
     h, w = image.shape[:2]
-    window = (0, 0, h, w)
+    window = (0, 0, w, h)
     scale = 1
     padding = [(0, 0), (0, 0), (0, 0)]
     crop = None
@@ -528,18 +542,23 @@ def compute_matches(gt_boxes, gt_class_ids,
     pred_class_ids = pred_class_ids[indices]
     pred_scores = pred_scores[indices]
 
+    overlaps = compute_overlaps(gt_boxes, pred_boxes)
+
     # Loop through predictions and find matching ground truth boxes
     match_count = 0
     pred_match = -1 * np.ones([pred_boxes.shape[0]])
     gt_match = -1 * np.ones([gt_boxes.shape[0]])
     for i in range(len(pred_boxes)):
         # Find best matching ground truth box
+
         # 1. Sort matches by score
         sorted_ixs = np.argsort(overlaps[i])[::-1]
+
         # 2. Remove low scores
         low_score_idx = np.where(overlaps[i, sorted_ixs] < score_threshold)[0]
         if low_score_idx.size > 0:
             sorted_ixs = sorted_ixs[:low_score_idx[0]]
+
         # 3. Find the match
         for j in sorted_ixs:
             # If ground truth box is already matched, go to next one

@@ -231,13 +231,14 @@ def build_detection_targets(rpn_rois, gt_class_ids, gt_boxes, config):
     This is not used in normal training. It's useful for debugging or to train
     the Mask RCNN heads without using the RPN head.
 
+    (x1, y1, x2, y2)
     Inputs:
-    rpn_rois: [N, (y1, x1, y2, x2)] proposal boxes.
+    rpn_rois: [N, (x1, y1, x2, y2)] proposal boxes.
     gt_class_ids: [instance count] Integer class IDs
-    gt_boxes: [instance count, (y1, x1, y2, x2)]
+    gt_boxes: [instance count, (x1, y1, x2, y2)]
 
     Returns:
-    rois: [TRAIN_ROIS_PER_IMAGE, (y1, x1, y2, x2)]
+    rois: [TRAIN_ROIS_PER_IMAGE, (x1, y1, x2, y2)]
     class_ids: [TRAIN_ROIS_PER_IMAGE]. Integer class IDs.
     bboxes: [TRAIN_ROIS_PER_IMAGE, NB_CLASSES, (y, x, log(h), log(w))]. Class-specific
             bbox refinements.
