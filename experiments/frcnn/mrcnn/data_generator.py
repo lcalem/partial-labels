@@ -336,8 +336,7 @@ def build_detection_targets(rpn_rois, gt_class_ids, gt_boxes, config):
     bboxes = np.zeros((config.TRAIN_ROIS_PER_IMAGE,
                        config.NB_CLASSES, 4), dtype=np.float32)
     pos_ids = np.where(roi_gt_class_ids > 0)[0]
-    bboxes[pos_ids, roi_gt_class_ids[pos_ids]] = utils.box_refinement(
-        rois[pos_ids], roi_gt_boxes[pos_ids, :4])
+    bboxes[pos_ids, roi_gt_class_ids[pos_ids]] = utils.box_refinement(rois[pos_ids], roi_gt_boxes[pos_ids, :4])
 
     # Normalize bbox refinements
     bboxes /= config.BBOX_STD_DEV
@@ -436,22 +435,32 @@ def build_rpn_targets(image_shape, anchors, gt_class_ids, gt_boxes, config):
         gt_w = gt[3] - gt[1]
         gt_center_y = gt[0] + 0.5 * gt_h
         gt_center_x = gt[1] + 0.5 * gt_w
+
         # Anchor
         a_h = a[2] - a[0]
         a_w = a[3] - a[1]
         a_center_y = a[0] + 0.5 * a_h
         a_center_x = a[1] + 0.5 * a_w
 
-        # Compute the bbox refinement that the RPN should predict.
-        rpn_bbox[ix] = [
-            (gt_center_y - a_center_y) / a_h,
-            (gt_center_x - a_center_x) / a_w,
-            np.log(gt_h / a_h),
-            np.log(gt_w / a_w),
-        ]
-        # Normalize
-        rpn_bbox[ix] /= config.RPN_BBOX_STD_DEV
-        ix += 1
+        if ((a_h == 0) or (a_w == 0)):
+            print('problematic anchor %s' % str(a))
+
+        try:
+            # Compute the bbox refinement that the RPN should predict.
+            rpn_bbox[ix] = [
+                (gt_center_y - a_center_y) / a_h,
+                (gt_center_x - a_center_x) / a_w,
+                np.log(gt_h / a_h),
+                np.log(gt_w / a_w),
+            ]
+            # Normalize
+            rpn_bbox[ix] /= config.RPN_BBOX_STD_DEV
+            ix += 1
+
+        except:
+            print('problematic anchor %s' % str(a))
+            print(a_h)
+            print(a_w)
 
     return rpn_match, rpn_bbox
 

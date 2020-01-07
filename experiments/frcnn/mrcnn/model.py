@@ -117,8 +117,8 @@ class MaskRCNN():
         # Inputs
         input_image = KL.Input(
             shape=[None, None, config.IMAGE_SHAPE[2]], name="input_image")
-        input_image_meta = KL.Input(shape=[config.IMAGE_META_SIZE],
-                                    name="input_image_meta")
+        input_image_meta = KL.Input(shape=[config.IMAGE_META_SIZE], name="input_image_meta")
+
         if mode == "training":
             # RPN GT
             input_rpn_match = KL.Input(shape=[None, 1], name="input_rpn_match", dtype=tf.int32)
