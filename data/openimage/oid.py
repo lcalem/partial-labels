@@ -61,7 +61,6 @@ class OIDGenerator(Dataset):
         '''
         one annotation csv line is like:
         img_id,folder,class_id,xmin,ymin,xmax,ymax
-
         38a420b38cd3c350,train_3,92,0.325781,0.450781,0.447917,0.668750
 
         ---
@@ -80,6 +79,8 @@ class OIDGenerator(Dataset):
 
         # multilabel annotations
         with open(annotations_path, 'r') as f_in:
+
+
             for line in f_in:
                 parts = line.strip().split(',')
                 img_id = parts[0]
@@ -89,11 +90,11 @@ class OIDGenerator(Dataset):
                 samples[img_id]['multilabel'].append(ground_truth_cls)
                 samples[img_id]['bboxes'].append((float(parts[3]), float(parts[4]), float(parts[5]), float(parts[6])))
                 samples[img_id]['classes'].append((class_data[class_id]['id'], class_data[class_id]['name']))
-                
+
                 size = (parts[7], parts[8])
-                
-                if samples[img_id]['size'] == list(): # default 
-                    samples[img_id]['size'] = size 
+
+                if samples[img_id]['size'] == list():  # default
+                    samples[img_id]['size'] = size
                 else:
                     assert samples[img_id]['size'] == size    # it should always be the same
 
