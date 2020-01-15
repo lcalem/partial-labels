@@ -2,9 +2,9 @@ import logging
 
 import numpy as np
 
-from mrcnn import utils
-from mrcnn import model
-from mrcnn import image_meta as meta
+from model.mrcnn import utils
+from model.mrcnn import model
+from model.mrcnn import image_meta as meta
 
 
 def data_generator(dataset,
@@ -16,7 +16,7 @@ def data_generator(dataset,
                    batch_size=1,
                    detection_targets=False,
                    no_augmentation_sources=None):
-    """
+    '''
     A generator that returns images and corresponding target class ids,
     bounding box deltas, and masks.
 
@@ -54,7 +54,8 @@ def data_generator(dataset,
     outputs list: Usually empty in regular training. But if detection_targets
         is True then the outputs list contains target class_ids, bbox deltas,
         and masks.
-    """
+    '''
+
     b = 0  # batch item index
     image_index = -1
     image_ids = np.copy(dataset.image_ids)
@@ -78,7 +79,6 @@ def data_generator(dataset,
             if shuffle and image_index == 0:
                 np.random.shuffle(image_ids)
 
-            # Get GT bounding boxes and masks for image.
             image_id = image_ids[image_index]
 
             # If the image source is not to be augmented pass None as augmentation
@@ -206,12 +206,8 @@ def load_image_gt(dataset,
     bboxes, class_ids = dataset.load_bboxes(image_id)
     original_shape = image.shape
 
-    image, window, scale, padding, crop = utils.resize_image(
-        image,
-        min_dim=config.IMAGE_MIN_DIM,
-        min_scale=config.IMAGE_MIN_SCALE,
-        max_dim=config.IMAGE_MAX_DIM,
-        mode=config.IMAGE_RESIZE_MODE)
+    window = (0, 0, 448, 448)
+    scale = 1
 
     # Active classes
     # Different datasets have different classes, so track the classes supported in the dataset of this image.

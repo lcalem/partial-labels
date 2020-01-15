@@ -4,8 +4,8 @@
 import tensorflow as tf
 import keras.engine as KE
 
-from mrcnn import utils
-from mrcnn import graph_utils as gutils
+from model.mrcnn import utils
+from model.mrcnn import graph_utils as gutils
 
 
 def overlaps_graph(boxes1, boxes2):

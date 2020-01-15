@@ -5,8 +5,8 @@ import tensorflow as tf
 import keras.engine as KE
 import numpy as np
 
-from mrcnn import utils
-from mrcnn.layers import layer_utils as lutils
+from model.mrcnn import utils
+from model.mrcnn.layers import layer_utils as lutils
 
 
 class ProposalLayer(KE.Layer):

@@ -4,8 +4,8 @@
 import keras.backend as K
 import keras.layers as KL
 
-from mrcnn import layers
-from mrcnn.layers import roi_align
+from model.mrcnn import layers
+from model.mrcnn.layers import roi_align
 
 
 def fpn_classifier_graph(rois, feature_maps, image_meta,

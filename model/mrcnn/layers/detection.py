@@ -4,10 +4,10 @@
 import tensorflow as tf
 import keras.engine as KE
 
-from mrcnn import image_meta as meta
-from mrcnn.layers import layer_utils as lutils
-from mrcnn import utils
-from mrcnn import graph_utils as gutils
+from model.mrcnn import image_meta as meta
+from model.mrcnn.layers import layer_utils as lutils
+from model.mrcnn import utils
+from model.mrcnn import graph_utils as gutils
 
 
 def refine_detections_graph(rois, probs, deltas, window, config):

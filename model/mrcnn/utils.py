@@ -513,7 +513,6 @@ def compute_matches(gt_boxes, gt_class_ids,
                     the matched ground truth box.
         overlaps: [pred_boxes, gt_boxes] IoU overlaps.
 
-    TODOTODOTODO
     '''
 
     # Trim zero padding
@@ -527,6 +526,9 @@ def compute_matches(gt_boxes, gt_class_ids,
     pred_boxes = pred_boxes[indices]
     pred_class_ids = pred_class_ids[indices]
     pred_scores = pred_scores[indices]
+
+    # Compute IoU overlaps [pred_masks, gt_masks]
+    overlaps = compute_overlaps(pred_boxes, gt_boxes)
 
     # Loop through predictions and find matching ground truth boxes
     match_count = 0

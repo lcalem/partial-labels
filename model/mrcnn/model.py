@@ -22,15 +22,15 @@ import keras.layers as KL
 import keras.engine as KE
 import keras.models as KM
 
-from mrcnn import utils
-from mrcnn import data_generator as datagen
-from mrcnn import image_meta as meta
-from mrcnn import losses as l
-from mrcnn import graph_utils as gutils
-from mrcnn import resnet
-from mrcnn import rpn as rpnlib
-from mrcnn import fpn as fpnlib
-from mrcnn.layers import proposal, detection_target, detection
+from model.mrcnn import utils
+from model.mrcnn import data_generator as datagen
+from model.mrcnn import image_meta as meta
+from model.mrcnn import losses as l
+from model.mrcnn import graph_utils as gutils
+from model.mrcnn import resnet
+from model.mrcnn import rpn as rpnlib
+from model.mrcnn import fpn as fpnlib
+from model.mrcnn.layers import proposal, detection_target, detection
 
 # Requires TensorFlow 1.3+ and Keras 2.0.8+.
 from distutils.version import LooseVersion
@@ -294,11 +294,11 @@ class MaskRCNN():
         return model
 
     def find_last(self):
-        """Finds the last checkpoint file of the last trained model in the
-        model directory.
+        '''
+        Finds the last checkpoint file of the last trained model in the model directory.
         Returns:
             The path of the last checkpoint file
-        """
+        '''
         # Get directory names. Each directory corresponds to a model
         dir_names = next(os.walk(self.model_dir))[1]
         key = self.config.NAME.lower()
@@ -309,8 +309,10 @@ class MaskRCNN():
             raise FileNotFoundError(
                 errno.ENOENT,
                 "Could not find model directory under {}".format(self.model_dir))
+
         # Pick last directory
         dir_name = os.path.join(self.model_dir, dir_names[-1])
+
         # Find the last checkpoint
         checkpoints = next(os.walk(dir_name))[2]
         checkpoints = filter(lambda f: f.startswith("mask_rcnn"), checkpoints)
@@ -320,6 +322,7 @@ class MaskRCNN():
             raise FileNotFoundError(
                 errno.ENOENT, "Could not find weight files in {}".format(dir_name))
         checkpoint = os.path.join(dir_name, checkpoints[-1])
+
         return checkpoint
 
     def load_weights(self, filepath, by_name=False, exclude=None):
@@ -592,22 +595,25 @@ class MaskRCNN():
         else:
             workers = multiprocessing.cpu_count()
 
+        steps_per_epoch = (train_dataset.nb_samples / self.config.BATCH_SIZE) if self.config.STEPS_PER_EPOCH is None else self.config.STEPS_PER_EPOCH
+
         self.keras_model.fit_generator(
             train_generator,
             initial_epoch=self.epoch,
             epochs=epochs,
-            steps_per_epoch=self.config.STEPS_PER_EPOCH,
+            steps_per_epoch=steps_per_epoch,
             callbacks=callbacks,
             validation_data=val_generator,
             validation_steps=self.config.VALIDATION_STEPS,
             max_queue_size=100,
             workers=workers,
-            use_multiprocessing=True,
+            use_multiprocessing=False,
         )
         self.epoch = max(self.epoch, epochs)
 
     def mold_inputs(self, images):
-        """Takes a list of images and modifies them to the format expected
+        '''
+        Takes a list of images and modifies them to the format expected
         as an input to the neural network.
         images: List of image matrices [height,width,depth]. Images can have
             different sizes.
@@ -617,10 +623,11 @@ class MaskRCNN():
         image_metas: [N, length of meta data]. Details about each image.
         windows: [N, (y1, x1, y2, x2)]. The portion of the image that has the
             original image (padding excluded).
-        """
+        '''
         molded_images = []
         image_metas = []
         windows = []
+
         for image in images:
             # Resize image
             # TODO: move resizing to mold_image()
@@ -630,19 +637,24 @@ class MaskRCNN():
                 min_scale=self.config.IMAGE_MIN_SCALE,
                 max_dim=self.config.IMAGE_MAX_DIM,
                 mode=self.config.IMAGE_RESIZE_MODE)
+
             molded_image = meta.mold_image(molded_image, self.config)
+
             # Build image_meta
             image_meta = meta.compose_image_meta(
                 0, image.shape, molded_image.shape, window, scale,
                 np.zeros([self.config.NB_CLASSES], dtype=np.int32))
+
             # Append
             molded_images.append(molded_image)
             windows.append(window)
             image_metas.append(image_meta)
+
         # Pack into arrays
         molded_images = np.stack(molded_images)
         image_metas = np.stack(image_metas)
         windows = np.stack(windows)
+
         return molded_images, image_metas, windows
 
     def unmold_detections(self,
@@ -871,7 +883,9 @@ class MaskRCNN():
         return layer
 
     def get_trainable_layers(self):
-        """Returns a list of layers that have weights."""
+        """
+        Returns a list of layers that have weights.
+        """
         layers = []
         # Loop through all layers
         for l in self.keras_model.layers:
@@ -883,7 +897,8 @@ class MaskRCNN():
         return layers
 
     def run_graph(self, images, outputs, image_metas=None):
-        """Runs a sub-set of the computation graph that computes the given
+        """
+        Runs a sub-set of the computation graph that computes the given
         outputs.
 
         image_metas: If provided, the images are assumed to be already

@@ -25,13 +25,16 @@ class Dataset(object):
             ...
 
     See COCODataset and ShapesDataset as examples.
+
+    TODO: background enforce 0 index
     """
 
     def __init__(self, class_map=None):
         self._image_ids = []
         self.image_info = []
         # Background is always the first class
-        self.class_info = [{"source": "", "id": 0, "name": "BG"}]
+        # self.class_info = [{"source": "", "id": 0, "name": "BG"}]
+        self.class_info = []
         self.source_class_ids = {}
 
     def add_class(self, source, class_id, class_name):
@@ -58,20 +61,22 @@ class Dataset(object):
         self.image_info.append(image_info)
 
     def image_reference(self, image_id):
-        """Return a link to the image in its source Website or details about
+        '''
+        Return a link to the image in its source Website or details about
         the image that help looking it up or debugging it.
 
         Override for your dataset, but pass to this function
         if you encounter images not in your dataset.
-        """
+        '''
         return ""
 
     def prepare(self, class_map=None):
-        """Prepares the Dataset class for use.
+        '''
+        Prepares the Dataset class for use.
 
         TODO: class map is not supported yet. When done, it should handle mapping
               classes from different datasets to the same class ID.
-        """
+        '''
 
         def clean_name(name):
             """Returns a shorter version of object names for cleaner display."""
@@ -103,11 +108,12 @@ class Dataset(object):
                     self.source_class_ids[source].append(i)
 
     def map_source_class_id(self, source_class_id):
-        """Takes a source class ID and returns the int class ID assigned to it.
+        '''
+        Takes a source class ID and returns the int class ID assigned to it.
 
         For example:
         dataset.map_source_class_id("coco.12") -> 23
-        """
+        '''
         return self.class_from_source_map[source_class_id]
 
     def get_source_class_id(self, class_id, source):

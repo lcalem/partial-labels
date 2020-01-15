@@ -4,7 +4,7 @@
 import keras.backend as K
 import tensorflow as tf
 
-from mrcnn import graph_utils as gutils
+from model.mrcnn import graph_utils as gutils
 
 
 def smooth_l1_loss(y_true, y_pred):

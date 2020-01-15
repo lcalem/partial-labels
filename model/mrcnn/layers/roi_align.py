@@ -4,7 +4,7 @@
 import tensorflow as tf
 import keras.engine as KE
 
-from mrcnn import image_meta as meta
+from model.mrcnn import image_meta as meta
 
 
 def log2_graph(x):
