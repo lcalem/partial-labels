@@ -35,7 +35,6 @@ class OIDataset(dataset.Dataset):
         self.nb_classes = cfg.NB_CLASSES
 
         self.img_size = (cfg.IMG_SIZE, cfg.IMG_SIZE, cfg.NB_CHANNELS)
-        self.batch_size = self.nb_samples if batch_size == 'all' else batch_size
 
         # class data
         self.class_data = self.load_class_data()
@@ -45,6 +44,8 @@ class OIDataset(dataset.Dataset):
         # loading samples
         self.sample_ids = self.load_samples()
         self.nb_samples = len(self.sample_ids)
+
+        self.batch_size = self.nb_samples if batch_size == 'all' else batch_size
 
         # registering step
         t0 = time.time()
