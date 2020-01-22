@@ -73,7 +73,7 @@ class OIDConfig(Config):
 
 class Launcher():
 
-    def __init__(self, exp_folder, percent=100, initial_weights=None):
+    def __init__(self, exp_folder, percent=100, init_weights=None):
         '''
         exp_percents: the known label percentages of the sequential experiments to launch (default: 100)
         '''
@@ -84,7 +84,8 @@ class Launcher():
         self.exp_folder = exp_folder   # still not sure this should go in config or not
         self.data_dir = self.config.DATASET_PATH
         self.relabel = False
-        self.initial_weights = initial_weights
+        self.init_weights = init_weights
+        assert (init_weights in ['coco', 'imagenet']) or (os.path.isfile(init_weights) and init_weights.endswith('.h5'))
 
         if percent is None:
             self.exp_percents = ALL_PCT
@@ -123,6 +124,7 @@ class Launcher():
         '''
 
         self.dataset_train = self.load_dataset(mode=self.config.DATASET_TRAIN, batch_size=self.config.BATCH_SIZE, p=p)
+        # self.dataset_train = self.load_dataset(mode=self.config.DATASET_TEST, batch_size=self.config.BATCH_SIZE)
         self.dataset_test = self.load_dataset(mode=self.config.DATASET_TEST, batch_size=self.config.TEST_BATCH_SIZE)
         # self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, batch_size=cfg.BATCH_SIZE, p=p)
         # self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size=cfg.TEST_BATCH_SIZE)
@@ -135,9 +137,9 @@ class Launcher():
 
         # Fine tune all layers
         self.model.train(self.dataset_train,
-                         self.dataset_val,
+                         self.dataset_test,
                          learning_rate=self.config.LEARNING_RATE / 10,
-                         epochs=self.config.NB_EPOCHS,
+                         epochs=self.config.NB_EPOCH,
                          layers="all")
 
         # # cleaning (to release memory before next launch)
@@ -165,21 +167,19 @@ class Launcher():
                                        config=self.config,
                                        model_dir=self.exp_folder)
 
-        # Which weights to start with?
-        init_with = "coco"  # imagenet, coco, or last
-
-        if init_with == "imagenet":
+        # Starting weights
+        if self.init_weights == "imagenet":
             self.model.load_weights(self.model.get_imagenet_weights(), by_name=True)
-        elif init_with == "coco":
+        elif self.init_weights == "coco":
             # Load weights trained on MS COCO, but skip layers that
             # are different due to the different number of classes
             # See README for instructions to download the COCO weights
             self.model.load_weights(COCO_MODEL_PATH,
                                     by_name=True,
                                     exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
-        elif init_with == "last":
+        else:
             # Load the last model you trained and continue training
-            self.model.load_weights(self.model.find_last(), by_name=True)
+            self.model.load_weights(self.init_weights, by_name=True)
 
     def build_callbacks(self, prop, relabel_step=None):
         '''
@@ -222,6 +222,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', '-g', required=True, help='# of the gpu device')
     parser.add_argument('--percent', '-p', default=100, help='the specific percentage of known labels')
     parser.add_argument('--exp_name', '-n', help='optional experiment name')
+    parser.add_argument('--init_weights', '-w', default='coco', help='init weights path (coco, imagenet or some h5 path')
 
     # options management
     args = parser.parse_args()
@@ -234,7 +235,7 @@ if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
     try:
-        launcher = Launcher(exp_folder, percent=args.percent)
+        launcher = Launcher(exp_folder, percent=args.percent, init_weights=args.init_weights)
         launcher.launch()
     finally:
         # cleanup if needed (test folders)
