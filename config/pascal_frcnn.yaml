@@ -1,0 +1,20 @@
+archi:
+    name: frcnn_baseline
+    extractor: resnet101
+dataset:
+    name: pascal
+    path: /local/DEEPLEARNING/pascalvoc/VOCdevkit/VOC2007
+    train: train
+    test: val
+image:
+    img_size: 448
+batch_size: 8
+test_batch_size: all
+training:
+    n_epochs: None
+    steps_per_epoch: 5000
+    optimizer: sgd
+    start_lr: 0.01
+    skip_val: true
+callback:
+    val_cb: map
