@@ -13,7 +13,7 @@ from keras.applications.imagenet_utils import preprocess_input
 
 from model.mrcnn import dataset
 
-from data.pascalvoc.preprocessing.utils import load_ids
+from data.pascalvoc.preprocessing.utils import load_ids_frcnn
 
 
 class PascalVOCDataset(dataset.Dataset):
@@ -66,7 +66,7 @@ class PascalVOCDataset(dataset.Dataset):
         print('Registered images in %s' % total)
 
     def load_class_data(self):
-        class_data = load_ids()
+        class_data = load_ids_frcnn()
 
         id2data = {int(elt['id']): elt for elt in class_data.values()}
         return id2data
@@ -107,7 +107,7 @@ class PascalVOCDataset(dataset.Dataset):
 
         example:
         samples['5c015f7e9bbd728a']['multilabel'][0] = [0, 1, ....] (length 20)
-        samples['5c015f7e9bbd728a']['bboxes'][0] = (x1, y1, x2, y2)
+        samples['5c015f7e9bbd728a']['bboxes'][0] = (x1, y1, x2, y2) here they are in pixels
         '''
 
         samples = defaultdict(lambda: defaultdict(list))
@@ -116,15 +116,24 @@ class PascalVOCDataset(dataset.Dataset):
         with open(annotations_path, 'r') as f_in:
             for line in f_in:
                 parts = line.strip().split(',')
+                is_part = int(parts[3])
+                if is_part:
+                    continue
+
                 img_id = parts[0]
-                class_id = int(parts[2])
+                class_id = int(parts[1])
                 ground_truth_cls = self.one_hotify_gt(class_id)
 
-                samples[img_id]['multilabel'].append(ground_truth_cls)
-                samples[img_id]['bboxes'].append((float(parts[3]), float(parts[4]), float(parts[5]), float(parts[6])))
-                samples[img_id]['classes'].append((self.class_data[class_id]['id'], self.class_data[class_id]['name']))
+                width = int(parts[9])
+                height = int(parts[10])
+                size = (width, height)
 
-                size = (parts[7], parts[8])
+                # convert bbox to % (they are originally in pixels)
+                bbox = (float(parts[5]) / width , float(parts[6]) / height, float(parts[7]) / width, float(parts[8]) / height)
+
+                samples[img_id]['multilabel'].append(ground_truth_cls)
+                samples[img_id]['bboxes'].append(bbox)
+                samples[img_id]['classes'].append((self.class_data[class_id]['id'], self.class_data[class_id]['name']))
 
                 if samples[img_id]['size'] == list():  # default
                     samples[img_id]['size'] = size
@@ -144,7 +153,7 @@ class PascalVOCDataset(dataset.Dataset):
         specs in image_info.
         '''
         img_id = self.get_img_id(img_index)
-        img_path = os.path.join(self.dataset_path, 'images', 'train', 'train_%s' % img_id[0], '%s.jpg' % img_id)
+        img_path = os.path.join(self.dataset_path, 'JPEGImages', '%s.jpg' % img_id)
         img = k_image.load_img(img_path, grayscale=False, target_size=(self.img_size[0], self.img_size[1]))
         img_arr = k_image.img_to_array(img, data_format='channels_last')
 
@@ -154,8 +163,6 @@ class PascalVOCDataset(dataset.Dataset):
         '''
         Generate instance GT bboxes for shapes of the given image ID.
         bboxes in targets are between 0 and 1 so we put them at pixel level here
-
-        bboxes are always
 
         WARNING:
         In the dataset and in self.targets the boxes are [x1, y1, x2, y2]
