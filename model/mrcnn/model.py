@@ -506,9 +506,17 @@ class MaskRCNN():
         self.checkpoint_path = self.checkpoint_path.replace(
             "*epoch*", "{epoch:04d}")
 
-    def train(self, train_dataset, val_dataset, learning_rate, epochs, layers,
-              augmentation=None, custom_callbacks=None, no_augmentation_sources=None):
-        """Train the model.
+    def train(self,
+              train_dataset,
+              val_dataset,
+              learning_rate,
+              epochs,
+              layers,
+              augmentation=None,
+              custom_callbacks=None,
+              no_augmentation_sources=None):
+        '''
+        Train the model.
         train_dataset, val_dataset: Training and validation Dataset objects.
         learning_rate: The learning rate to train with
         epochs: Number of training epochs. Note that previous training epochs
@@ -539,7 +547,7 @@ class MaskRCNN():
         no_augmentation_sources: Optional. List of sources to exclude for
             augmentation. A source is string that identifies a dataset and is
             defined in the Dataset class.
-        """
+        '''
         assert self.mode == "training", "Create model in training mode."
 
         # Pre-defined layer regular expressions
@@ -561,9 +569,8 @@ class MaskRCNN():
                                                  self.config,
                                                  shuffle=True,
                                                  augmentation=augmentation,
-                                                 batch_size=self.config.BATCH_SIZE,
                                                  no_augmentation_sources=no_augmentation_sources)
-        val_generator = datagen.data_generator(val_dataset, self.config, shuffle=True, batch_size=self.config.BATCH_SIZE)
+        val_generator = datagen.data_generator(val_dataset, self.config, shuffle=True)
 
         # Create log_dir if it does not exist
         if not os.path.exists(self.log_dir):

@@ -11,7 +11,8 @@ image:
 batch_size: 8
 test_batch_size: all
 training:
-    n_epochs: 10
+    n_epochs: None
+    steps_per_epoch: 5000
     optimizer: sgd
     start_lr: 0.01
     skip_val: true

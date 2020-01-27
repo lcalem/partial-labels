@@ -56,8 +56,10 @@ class OIDConfig(Config):
     RPN_ANCHOR_SCALES = (64, 128, 256)  # anchor side in pixels
 
     # STEPS_PER_EPOCH = 2000   # Size of the dataset
-    STEPS_PER_EPOCH = 3000
-    NB_EPOCH = 200
+    STEPS_PER_EPOCH = 5000
+
+    # 200 is the starting epoch of the trained weights
+    NB_EPOCH = 200 + 100   # with 5000 * 8 images per epoch we need 1578816 / (5000*8) = 50 epoch to see every image (100 epoch = 2 'true' epochs)
 
     # old config
     IMG_SIZE = 448
@@ -68,7 +70,7 @@ class OIDConfig(Config):
     DATASET_TEST = 'val'
 
     BATCH_SIZE = 8
-    TEST_BATCH_SIZE = 'all'
+    TEST_BATCH_SIZE = 8    # just so we don't loose too much time
 
 
 class Launcher():
@@ -216,6 +218,7 @@ class Launcher():
 
 
 # python3 launch_oid.py -g 0 -o oid_baseline
+# python3 launch_oid.py -g 0 -o oid_baseline -w /home/caleml/partial_experiments/exp_20200115_1952_frcnn_baseline_oid_baseline/openimages20200115T2023/mask_rcnn_openimages_0200.h5
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
