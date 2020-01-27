@@ -2,7 +2,7 @@ import csv
 import os
 
 
-def load_ids():
+def load_ids(name='class_id'):
     '''
     Example:
 
@@ -25,9 +25,16 @@ def load_ids():
     here = os.path.abspath(os.path.dirname(__file__))
 
     name2info = dict()
-    with open(os.path.join(here, 'class_id.csv'), 'r') as f_in:
+    with open(os.path.join(here, '%s.csv' % name), 'r') as f_in:
         reader = csv.DictReader(f_in, delimiter=';')
         for row in reader:
             name2info[row['name']] = {k: int_or_not(k, v) for k, v in row.items()}
 
     return name2info
+
+
+def load_ids_frcnn():
+    '''
+    same but with background
+    '''
+    return load_ids(name='class_ids_frcnn')

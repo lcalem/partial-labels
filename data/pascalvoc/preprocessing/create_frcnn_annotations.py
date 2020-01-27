@@ -1,7 +1,7 @@
 import os
 import sys
 
-from utils import load_ids
+from utils import load_ids_frcnn
 
 import xml.etree.ElementTree as et
 
@@ -43,7 +43,7 @@ def create_annotations(data_path):
 
     subsets = ('train', 'val', 'trainval', 'test')
 
-    class_info = load_ids()
+    class_info = load_ids_frcnn()
 
     for subset in subsets:
         ids_path = os.path.join(data_path, 'ImageSets/Main', '%s.txt' % subset)
