@@ -1,12 +1,13 @@
 archi:
     name: frcnn_baseline
-    extractor: resnet101
 dataset:
     name: pascal
     path: /local/DEEPLEARNING/pascalvoc/VOCdevkit/VOC2007
     train: train
     test: val
+    nb_classes: 21
 image:
+    resize_mode: 'square'
     img_size: 448
 batch_size: 8
 test_batch_size: all

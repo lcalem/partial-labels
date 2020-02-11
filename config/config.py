@@ -56,3 +56,9 @@ cfg.MULTIP.USE_MULTIPROCESS = False
 cfg.RELABEL = edict()
 cfg.RELABEL.ACTIVE = False
 cfg.RELABEL.EPOCHS = None
+
+# merge config
+cfg.GPU_COUNT = 1
+cfg.IMAGES_PER_GPU = 2
+cfg.STEPS_PER_EPOCH = 1000
+cfg.VALIDATION_STEPS = 50

@@ -1,0 +1,70 @@
+parent_config: frcnn_baseline
+archi:
+    name: frcnn_baseline
+dataset:
+    name: oid
+    path: /local/DEEPLEARNING/oid/
+    train: train
+    test: val
+    nb_classes: 501
+image:
+    resize_mode: square
+    img_size: 448
+    nb_channels: 3
+    mean_pixel:
+        - 123.7
+        - 116.8
+        - 103.9
+batch_size: 8
+test_batch_size: 8
+training:
+    nb_epoch: 300       # with 5000 * 8 images per epoch we need 1578816 / (5000*8) = 50 epoch to see every image (100 epoch = 2 'true' epochs)
+    steps_per_epoch: 5000
+    optimizer: sgd
+    start_lr: 0.001
+    lr_momentum: 0.9
+    weight_decay: 0.0001
+    skip_val: true
+callback:
+    val_cb: map
+
+
+"""
+class OIDConfig(Config):
+
+    # Give the configuration a recognizable name
+    NAME = 'openimages'
+
+    # Train on 1 GPU and 8 images per GPU. We can put multiple images on each
+    # GPU because the images are small. Batch size is 8 (GPUs * images/GPU).
+    GPU_COUNT = 1
+    IMAGES_PER_GPU = 8
+
+    # Number of classes (including background)
+    NB_CLASSES = 500 + 1
+
+    # Use small images for faster training. Set the limits of the small side
+    # the large side, and that determines the image shape.
+    IMAGE_MIN_DIM = 448
+    IMAGE_MAX_DIM = 448
+
+    # Use smaller anchors because our image and objects are small
+    RPN_ANCHOR_SCALES = (64, 128, 256)  # anchor side in pixels
+
+    # STEPS_PER_EPOCH = 2000   # Size of the dataset
+    STEPS_PER_EPOCH = 5000
+
+    # 200 is the starting epoch of the trained weights
+    NB_EPOCH = 200 + 100   # with 5000 * 8 images per epoch we need 1578816 / (5000*8) = 50 epoch to see every image (100 epoch = 2 'true' epochs)
+
+    # old config
+    IMG_SIZE = 448
+    DATASET_PATH = '/local/DEEPLEARNING/oid/'
+    NB_CHANNELS = 3
+
+    DATASET_TRAIN = 'train'
+    DATASET_TEST = 'val'
+
+    BATCH_SIZE = 8
+    TEST_BATCH_SIZE = 8    # just so we don't loose too much time
+"""
