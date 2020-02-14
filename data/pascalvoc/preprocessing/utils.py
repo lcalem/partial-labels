@@ -33,8 +33,11 @@ def load_ids(name='class_id'):
     return name2info
 
 
-def load_ids_frcnn():
+def load_ids_frcnn(extended):
     '''
     same but with background
     '''
-    return load_ids(name='class_ids_frcnn')
+    if extended is True:
+        return load_ids(name='class_ids_ext_frcnn')
+    else:
+        return load_ids(name='class_ids_frcnn')

@@ -20,3 +20,6 @@ sheep;17;48;130;48;127;animal;sh;18
 sofa;18;111;124;118;124;indoor;so;57
 train;19;127;145;134;152;vehicle;tr;6
 tvmonitor;20;128;166;128;158;indoor;tv;62
+head;21;-1;-1;-1;-1;person;he;-1
+hand;22;-1;-1;-1;-1;person;ha;-1
+foot;23;-1;-1;-1;-1;person;ft;-1

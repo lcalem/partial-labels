@@ -32,90 +32,105 @@ def extract_name_and_bbox(tree_elem):
     return obj
 
 
-def create_annotations(data_path):
-    '''
-    output format
-    img_id,cls_id,tag_id,is_part,parent_id,xmin,ymin,xmax,ymax,width,height,depth
-        - tag_id is just img_id + int representing the counter of tags in the image
-        - is_part indicates whether the tag is a 'part' of another tag
-        - parent_id is to indicate the parent of the part (only for parts)
-    '''
+class Annotations(object):
+    def __init__(self, data_path, extended=False):
+        self.data_path = data_path
+        self.extended = extended
+        self.class_info = load_ids_frcnn(extended=extended)
 
-    subsets = ('train', 'val', 'trainval', 'test')
+    def extract_xml_data(self, image_id):
 
-    class_info = load_ids_frcnn()
+        # recover bbox data for each image
+        xml_image_data = os.path.join(self.data_path, 'Annotations', '%s.xml' % image_id)
 
-    for subset in subsets:
-        ids_path = os.path.join(data_path, 'ImageSets/Main', '%s.txt' % subset)
-        output_path = os.path.join(data_path, 'Annotations', 'frcnn_%s.csv' % subset)
+        size_data = [None, None, None]
+        object_data = list()
 
-        # get image ids for the subset
-        image_ids = list()
-        with open(ids_path, 'r') as f_ids:
-            for line in f_ids:
-                image_ids.append(line.strip())
+        with open(xml_image_data, 'r') as f_xml:
 
-        count_images = 0
+            xmltext = f_xml.read()
+            tree = et.fromstring(xmltext)
 
-        with open(output_path, 'w+') as f_out:
+            # size data
+            for size_elt in tree.iterfind('size'):
+                for el in size_elt:
+                    if el.tag == 'width':
+                        size_data[0] = el.text
+                    elif el.tag == 'height':
+                        size_data[1] = el.text
+                    elif el.tag == 'depth':
+                        size_data[2] = el.text
 
-            for image_id in image_ids:
-                # print('doing %s' % image_id)
-                count_images += 1
+            # object data
+            for obj_elt in tree.iterfind('object'):
+                obj = extract_name_and_bbox(obj_elt)
 
-                # recover bbox data for each image
-                xml_image_data = os.path.join(data_path, 'Annotations', '%s.xml' % image_id)
+                for parts_elt in obj_elt.iterfind('part'):
+                    part_obj = extract_name_and_bbox(parts_elt)
+                    obj['parts'].append(part_obj)
 
-                size_data = [None, None, None]
-                object_data = list()
+                object_data.append(obj)
 
-                with open(xml_image_data, 'r') as f_xml:
+        return object_data, size_data
 
-                    xmltext = f_xml.read()
-                    tree = et.fromstring(xmltext)
+    def create_annot_line(self, obj, size_data, image_id):
+        # img_id,cls_id,tag_id,is_part,parent_id,xmin,ymin,xmax,ymax,width,height,depth
+        class_id = self.class_info[obj['name']]['id']
+        xmin, ymin, xmax, ymax = obj['bbox']   # xmin, ymin, xmax, ymax
+        width, height, depth = size_data
 
-                    # size data
-                    for size_elt in tree.iterfind('size'):
-                        for el in size_elt:
-                            if el.tag == 'width':
-                                size_data[0] = el.text
-                            elif el.tag == 'height':
-                                size_data[1] = el.text
-                            elif el.tag == 'depth':
-                                size_data[2] = el.text
+        annot_line = [image_id, str(class_id), xmin, ymin, xmax, ymax, width, height, depth]
+        return annot_line
 
-                    # object data
-                    for obj_elt in tree.iterfind('object'):
-                        obj = extract_name_and_bbox(obj_elt)
+    def create_annotations(self):
+        '''
+        output format
+        img_id,cls_id,xmin,ymin,xmax,ymax,width,height,depth
+            - tag_id is just img_id + int representing the counter of tags in the image
+            - is_part indicates whether the tag is a 'part' of another tag
+            - parent_id is to indicate the parent of the part (only for parts)
+        extended: includes person parts ()
+        '''
 
-                        for parts_elt in obj_elt.iterfind('part'):
-                            part_obj = extract_name_and_bbox(parts_elt)
-                            obj['parts'].append(part_obj)
+        subsets = ('train', 'val', 'trainval', 'test')
 
-                        object_data.append(obj)
+        for subset in subsets:
+            ids_path = os.path.join(data_path, 'ImageSets/Main', '%s.txt' % subset)
+            output_path = os.path.join(data_path, 'Annotations', 'frcnn_%s%s.csv' % (subset, '_ext' if self.extended else ''))
 
-                # write annotation line for each bbox
-                for i, obj in enumerate(object_data):
-                    # img_id,cls_id,tag_id,is_part,parent_id,xmin,ymin,xmax,ymax,width,height,depth
-                    class_id = class_info[obj['name']]['id']
-                    tag_id = '%s_%s' % (image_id, str(i))
-                    xmin, ymin, xmax, ymax = obj['bbox']   # xmin, ymin, xmax, ymax
-                    width, height, depth = size_data
+            # get image ids for the subset
+            image_ids = list()
+            with open(ids_path, 'r') as f_ids:
+                for line in f_ids:
+                    image_ids.append(line.strip())
 
-                    annot_line = [image_id, str(class_id), tag_id, '0', '0', xmin, ymin, xmax, ymax, width, height, depth]
-                    f_out.write(','.join(annot_line) + '\n')
+            count_images = 0
 
-                    # write parts (we put the class name instead of the class_id because they don't have any ids)
-                    for j, part in enumerate(obj['parts']):
-                        pxmin, pymin, pxmax, pymax = part['bbox']
-                        part_id = '%s_%s_%s' % (image_id, str(i), str(j))
-                        part_line = [image_id, part['name'], part_id, '1', tag_id, pxmin, pymin, pxmax, pymax, width, height, depth]
-                        f_out.write(','.join(part_line) + '\n')
+            with open(output_path, 'w+') as f_out:
 
-        print('found %s examples, for subset %s', (count_images, subset))
+                for image_id in image_ids:
+                    # print('doing %s' % image_id)
+                    count_images += 1
+
+                    object_data, size_data = self.extract_xml_data(image_id)
+
+                    # write annotation line for each bbox
+                    for i, obj in enumerate(object_data):
+                        annot_line = self.create_annot_line(obj, size_data, image_id)
+                        f_out.write(','.join(annot_line) + '\n')
+
+                        if self.extended:
+                            # write parts
+                            for j, part in enumerate(obj['parts']):
+                                part_line = self.create_annot_line(part, size_data, image_id)
+                                f_out.write(','.join(part_line) + '\n')
+
+            print('found %s examples, for subset %s' % (count_images, subset))
 
 
-# python3 create_frcnn_annotations.py /local/DEEPLEARNING/pascalvoc/VOCdevkit/VOC2007
+# python3 create_frcnn_annotations.py /local/DEEPLEARNING/pascalvoc/VOCdevkit/VOC2007 ext
 if __name__ == '__main__':
     data_path = sys.argv[1]
-    create_annotations(data_path)
+    extended = False if (len(sys.argv) == 2) else True   # ugly
+    anot = Annotations(data_path, extended)
+    anot.create_annotations()
