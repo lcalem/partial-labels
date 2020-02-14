@@ -10,7 +10,7 @@ archi:
     top_down_pyramid_size: 256
 
     # RPN
-    rpn_anchor_sizes:
+    rpn_anchor_scales:
         - 64
         - 128
         - 256
@@ -74,12 +74,14 @@ archi:
     # Non-maximum suppression threshold for detection
     detection_nms_threshold: 0.3
 
-training:
     # Train or freeze batch normalization layers
     #     None: Train BN layers. This is the normal mode
     #     False: Freeze BN layers. Good when using a small batch size
     #     True: (don't use). Set layer in training mode even when predicting
     train_bn: false  # Defaulting to False since batch size is often small
+
+
+training:
 
     # Gradient norm clipping
     gradient_clip_nom: 5.0

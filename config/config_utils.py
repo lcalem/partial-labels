@@ -34,6 +34,11 @@ def parse_options_file(filepath):
     with open(filepath, 'r') as f_in:
         config = yaml.safe_load(f_in)
 
+    print('\n========================')
+    print('Loaded config\n')
+    pprint(config)
+    print('========================\n')
+
     return config
 
 
@@ -58,3 +63,9 @@ def update_config(options_dict):
 
     new_config = edict(options_dict)
     dict_recursive_update(cfg, new_config)
+
+
+def sanitize_config():
+    # Image meta data length
+    # See compose_image_meta() for details
+    cfg.IMAGE_META_SIZE = 1 + 3 + 3 + 4 + 1 + cfg.DATASET.NB_CLASSES

@@ -273,7 +273,7 @@ if __name__ == '__main__':
 
     # options management
     args = parser.parse_args()
-    options = utils.parse_options_file(args.options)
+    options = config_utils.parse_options_file(args.options)
     config_utils.update_config(options)
 
     # init

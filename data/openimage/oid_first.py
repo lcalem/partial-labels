@@ -32,9 +32,9 @@ class OIDataset(dataset.Dataset):
         self.dataset_path = dataset_path
         self.mode = mode
         self.p = p
-        self.nb_classes = cfg.NB_CLASSES
+        self.nb_classes = cfg.DATASET.NB_CLASSES
 
-        self.img_size = (cfg.IMG_SIZE, cfg.IMG_SIZE, cfg.NB_CHANNELS)
+        self.img_size = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.NB_CHANNELS)
 
         # class data
         self.class_data = self.load_class_data()

@@ -10,7 +10,8 @@ from model.mrcnn.layers import layer_utils as lutils
 
 
 class ProposalLayer(KE.Layer):
-    """Receives anchor scores and selects a subset to pass as proposals
+    '''
+    Receives anchor scores and selects a subset to pass as proposals
     to the second stage. Filtering is done based on anchor scores and
     non-max suppression to remove overlaps. It also applies bounding
     box refinement deltas to anchors.
@@ -22,7 +23,7 @@ class ProposalLayer(KE.Layer):
 
     Returns:
         Proposals in normalized coordinates [batch, rois, (y1, x1, y2, x2)]
-    """
+    '''
 
     def __init__(self, proposal_count, nms_threshold, config=None, **kwargs):
         super(ProposalLayer, self).__init__(**kwargs)
@@ -35,28 +36,24 @@ class ProposalLayer(KE.Layer):
         scores = inputs[0][:, :, 1]
         # Box deltas [batch, num_rois, 4]
         deltas = inputs[1]
-        deltas = deltas * np.reshape(self.config.RPN_BBOX_STD_DEV, [1, 1, 4])
+        deltas = deltas * np.reshape(self.config.ARCHI.RPN_BBOX_STD_DEV, [1, 1, 4])
         # Anchors
         anchors = inputs[2]
 
-        # Improve performance by trimming to top anchors by score
-        # and doing the rest on the smaller subset.
-        pre_nms_limit = tf.minimum(self.config.PRE_NMS_LIMIT, tf.shape(anchors)[1])
-        ix = tf.nn.top_k(scores, pre_nms_limit, sorted=True,
-                         name="top_anchors").indices
-        scores = utils.batch_slice([scores, ix], lambda x, y: tf.gather(x, y),
-                                   self.config.IMAGES_PER_GPU)
-        deltas = utils.batch_slice([deltas, ix], lambda x, y: tf.gather(x, y),
-                                   self.config.IMAGES_PER_GPU)
+        # Improve performance by trimming to top anchors by score and doing the rest on the smaller subset.
+        pre_nms_limit = tf.minimum(self.config.ARCHI.PRE_NMS_LIMIT, tf.shape(anchors)[1])
+        ix = tf.nn.top_k(scores, pre_nms_limit, sorted=True, name="top_anchors").indices
+        scores = utils.batch_slice([scores, ix], lambda x, y: tf.gather(x, y), self.config.BATCH_SIZE)
+        deltas = utils.batch_slice([deltas, ix], lambda x, y: tf.gather(x, y), self.config.BATCH_SIZE)
         pre_nms_anchors = utils.batch_slice([anchors, ix], lambda a, x: tf.gather(a, x),
-                                    self.config.IMAGES_PER_GPU,
+                                    self.config.BATCH_SIZE,
                                     names=["pre_nms_anchors"])
 
         # Apply deltas to anchors to get refined anchors.
         # [batch, N, (y1, x1, y2, x2)]
         boxes = utils.batch_slice([pre_nms_anchors, deltas],
                                   lambda x, y: lutils.apply_box_deltas_graph(x, y),
-                                  self.config.IMAGES_PER_GPU,
+                                  self.config.BATCH_SIZE,
                                   names=["refined_anchors"])
 
         # Clip to image boundaries. Since we're in normalized coordinates,
@@ -64,7 +61,7 @@ class ProposalLayer(KE.Layer):
         window = np.array([0, 0, 1, 1], dtype=np.float32)
         boxes = utils.batch_slice(boxes,
                                   lambda x: lutils.clip_boxes_graph(x, window),
-                                  self.config.IMAGES_PER_GPU,
+                                  self.config.BATCH_SIZE,
                                   names=["refined_anchors_clipped"])
 
         # Filter out small boxes
@@ -81,8 +78,8 @@ class ProposalLayer(KE.Layer):
             padding = tf.maximum(self.proposal_count - tf.shape(proposals)[0], 0)
             proposals = tf.pad(proposals, [(0, padding), (0, 0)])
             return proposals
-        proposals = utils.batch_slice([boxes, scores], nms,
-                                      self.config.IMAGES_PER_GPU)
+
+        proposals = utils.batch_slice([boxes, scores], nms, self.config.BATCH_SIZE)
         return proposals
 
     def compute_output_shape(self, input_shape):

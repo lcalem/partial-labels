@@ -69,9 +69,9 @@ class WeightedCrossEntropy(tf.keras.losses.Loss):
         self.ambiguity_map = ambiguity_map
 
     def call(self, y_true, y_pred):
-        
+
         weights = tf.reduce_sum(self.ambiguity_map * self.class_weights * y_true, axis=-1)
-        
+
         unweighted_cross_entropy = tf.keras.losses.binary_crossentropy(y_true * self.ambiguity_map, y_pred * self.ambiguity_map)
         #unweighted_cross_entropy = tf.keras.losses.categorical_crossentropy(y_true, y_pred)
         #cross_entropy = tf.reduce_mean(unweighted_cross_entropy * weights)
@@ -85,7 +85,7 @@ class SegBaseline(BaseModel):
 
         self.p = p
         self.n_classes = n_classes
-        self.input_shape = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.N_CHANNELS)
+        self.input_shape = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.NB_CHANNELS)
         self.output_shape = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, self.n_classes)
         self.verbose = cfg.VERBOSE
 
@@ -96,7 +96,7 @@ class SegBaseline(BaseModel):
 
         print("Init input_shape %s" % str(self.input_shape))
 
-        
+
     def build(self):
 
         ambiguity_map = tf.keras.Input(shape=self.output_shape, name='ambiguity_map')
@@ -122,16 +122,16 @@ class SegBaseline(BaseModel):
         self.log('Outputs shape %s' % str(self.model.output_shape))
 
         optimizer = self.build_optimizer()
-        
+
         metrics = ['binary_accuracy', DiceScore(class_id=1, name='pancreas_dice')]
-        
+
         #loss = WeightedCrossEntropy([1.0, 3.0, 50.0, 30.0])
         #loss = WeightedCrossEntropy_v2([1.011276563, 144.6087607, 1090.794364, 301.3094671])
         #loss = WeightedCrossEntropy_v2(ambiguity_map, [0.04292439486, 0.6141659478, 5.935304885, 2.689794809])
         #loss = WeightedCrossEntropy_v2(ambiguity_map, [1.0, 1.0]) #[0.00171322633574941, 0.998286773664251])
         #loss = WeightedCrossEntropy([0.004869942426, 2.160194604, 3.037742885, 2.479012777])
         loss = WeightedCrossEntropy(ambiguity_map, [1.0, 1.0])
-        
+
         self.model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
         if self.verbose:

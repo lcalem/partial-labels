@@ -12,7 +12,7 @@ import model.mrcnn.model as modellib
 
 from experiments import launch_utils as utils
 
-from data.openimage.oid_first import OIDataset
+from data.pascalvoc.pascal_frcnn import PascalVOCDataset
 
 
 # Directory to save logs and trained model
@@ -26,11 +26,51 @@ if not os.path.exists(COCO_MODEL_PATH):
     mutils.download_trained_weights(COCO_MODEL_PATH)
 
 
-from config.config import cfg
-from pprint import pprint
-
+# from config.config import cfg
 
 ALL_PCT = (10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
+
+
+class PascalConfig(Config):
+    '''
+    Configuration for training on the OID dataset.
+    Derives from the base Config class and overrides values specific to OID
+    '''
+    # Give the configuration a recognizable name
+    NAME = "openimages"
+
+    # Train on 1 GPU and 8 images per GPU. We can put multiple images on each
+    # GPU because the images are small. Batch size is 8 (GPUs * images/GPU).
+    GPU_COUNT = 1
+    IMAGES_PER_GPU = 8
+
+    # Number of classes (including background)
+    NB_CLASSES = 500 + 1
+
+    # Use small images for faster training. Set the limits of the small side
+    # the large side, and that determines the image shape.
+    IMAGE_MIN_DIM = 448
+    IMAGE_MAX_DIM = 448
+
+    # Use smaller anchors because our image and objects are small
+    RPN_ANCHOR_SCALES = (64, 128, 256)  # anchor side in pixels
+
+    # STEPS_PER_EPOCH = 2000   # Size of the dataset
+    STEPS_PER_EPOCH = 5000
+
+    # 200 is the starting epoch of the trained weights
+    NB_EPOCH = 200 + 100   # with 5000 * 8 images per epoch we need 1578816 / (5000*8) = 50 epoch to see every image (100 epoch = 2 'true' epochs)
+
+    # old config
+    IMG_SIZE = 448
+    DATASET_PATH = '/local/DEEPLEARNING/oid/'
+    NB_CHANNELS = 3
+
+    DATASET_TRAIN = 'train'
+    DATASET_TEST = 'val'
+
+    BATCH_SIZE = 8
+    TEST_BATCH_SIZE = 8    # just so we don't loose too much time
 
 
 class Launcher():
@@ -41,7 +81,7 @@ class Launcher():
         '''
 
         self.exp_folder = exp_folder   # still not sure this should go in config or not
-        self.data_dir = cfg.DATASET.PATH
+        self.data_dir = self.config.DATASET_PATH
         self.relabel = False
         self.init_weights = init_weights
         assert (init_weights in ['coco', 'imagenet']) or (os.path.isfile(init_weights) and init_weights.endswith('.h5'))
@@ -82,9 +122,9 @@ class Launcher():
         5. train
         '''
 
-        self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, batch_size=cfg.BATCH_SIZE, p=p)
+        self.dataset_train = self.load_dataset(mode=self.config.DATASET_TRAIN, batch_size=self.config.BATCH_SIZE, p=p)
         # self.dataset_train = self.load_dataset(mode=self.config.DATASET_TEST, batch_size=self.config.BATCH_SIZE)
-        self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size=cfg.TEST_BATCH_SIZE)
+        self.dataset_test = self.load_dataset(mode=self.config.DATASET_TEST, batch_size=self.config.TEST_BATCH_SIZE)
         # self.dataset_train = self.load_dataset(mode=cfg.DATASET.TRAIN, batch_size=cfg.BATCH_SIZE, p=p)
         # self.dataset_test = self.load_dataset(mode=cfg.DATASET.TEST, batch_size=cfg.TEST_BATCH_SIZE)
 
@@ -97,8 +137,8 @@ class Launcher():
         # Fine tune all layers
         self.model.train(self.dataset_train,
                          self.dataset_test,
-                         learning_rate=cfg.TRAINING.START_LR,
-                         epochs=cfg.TRAINING.NB_EPOCH,
+                         learning_rate=self.config.TRAINING.START_LR,
+                         epochs=self.config.NB_EPOCH,
                          layers="all")
 
         # # cleaning (to release memory before next launch)
@@ -111,7 +151,7 @@ class Launcher():
         '''
         print('loading dataset %s' % mode)
         dataset = OIDataset()
-        dataset.load_oid(self.data_dir, batch_size, mode, cfg=cfg)
+        dataset.load_oid(self.config.DATASET_PATH, batch_size, mode, self.config)
         dataset.prepare()
 
         return dataset
@@ -123,7 +163,7 @@ class Launcher():
         print("building model")
         # Create model in training mode
         self.model = modellib.MaskRCNN(mode="training",
-                                       cfg=cfg,
+                                       config=self.config,
                                        model_dir=self.exp_folder)
 
         # Starting weights
@@ -174,8 +214,7 @@ class Launcher():
         return list()
 
 
-# python3 launch_oid.py -g 0 -o frcnn_oid_baseline
-# python3 launch_oid.py -g 0 -o oid_baseline -w /home/caleml/partial_experiments/exp_20200115_1952_frcnn_baseline_oid_baseline/openimages20200115T2023/mask_rcnn_openimages_0200.h5
+# python3 launch_pascal.py -g 2 -o pascal_frcnn
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--options', '-o', required=True, help='options yaml file')
@@ -186,14 +225,8 @@ if __name__ == '__main__':
 
     # options management
     args = parser.parse_args()
-    options = config_utils.parse_options_file(args.options)
+    options = utils.parse_options_file(args.options)
     config_utils.update_config(options)
-    config_utils.sanitize_config()
-
-    print('\n========================')
-    print('Final config\n')
-    pprint(cfg)
-    print('========================\n')
 
     # init
     exp_folder = utils.exp_init(' '.join(sys.argv), exp_name=(args.exp_name or args.options))
@@ -205,7 +238,6 @@ if __name__ == '__main__':
         launcher.launch()
     finally:
         # cleanup if needed (test folders)
-        pass   # TODO when cfg is back
-        # if cfg.CLEANUP is True:
-        #     log.printcn(log.OKBLUE, 'Cleaning folder %s' % (exp_folder))
-        #     shutil.rmtree(exp_folder)
+        if cfg.CLEANUP is True:
+            log.printcn(log.OKBLUE, 'Cleaning folder %s' % (exp_folder))
+            shutil.rmtree(exp_folder)

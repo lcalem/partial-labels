@@ -24,7 +24,7 @@ class Baseline(BaseModel):
 
         self.p = p
         self.n_classes = n_classes
-        self.input_shape = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.N_CHANNELS)
+        self.input_shape = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.NB_CHANNELS)
         self.verbose = cfg.VERBOSE
 
         print("Init input_shape %s" % str(self.input_shape))

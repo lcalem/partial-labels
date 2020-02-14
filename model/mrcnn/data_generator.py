@@ -66,12 +66,13 @@ def data_generator(dataset,
 
     # Anchors
     # [anchor_count, (y1, x1, y2, x2)]
-    backbone_shapes = model.compute_backbone_shapes(config, config.IMAGE_SHAPE)
-    anchors = utils.generate_pyramid_anchors(config.RPN_ANCHOR_SCALES,
-                                             config.RPN_ANCHOR_RATIOS,
+    image_shape = (config.IMAGE.IMG_SIZE, config.IMAGE.IMG_SIZE, config.IMAGE.NB_CHANNELS)
+    backbone_shapes = model.compute_backbone_shapes(config, image_shape)
+    anchors = utils.generate_pyramid_anchors(config.ARCHI.RPN_ANCHOR_SCALES,
+                                             config.ARCHI.RPN_ANCHOR_RATIOS,
                                              backbone_shapes,
-                                             config.BACKBONE_STRIDES,
-                                             config.RPN_ANCHOR_STRIDE)
+                                             config.ARCHI.BACKBONE_STRIDES,
+                                             config.ARCHI.RPN_ANCHOR_STRIDE)
 
     with open('/home/caleml/partial_experiments/writing_nb_img%s.txt' % datetime.datetime.now().strftime("%Y%m%d_%H%M"), 'w+') as f_nb:
 
@@ -122,10 +123,10 @@ def data_generator(dataset,
                 if b == 0:
                     batch_image_meta = np.zeros((batch_size,) + image_meta.shape, dtype=image_meta.dtype)
                     batch_rpn_match = np.zeros([batch_size, anchors.shape[0], 1], dtype=rpn_match.dtype)
-                    batch_rpn_bbox = np.zeros([batch_size, config.RPN_TRAIN_ANCHORS_PER_IMAGE, 4], dtype=rpn_bbox.dtype)
+                    batch_rpn_bbox = np.zeros([batch_size, config.ARCHI.RPN_TRAIN_ANCHORS_PER_IMAGE, 4], dtype=rpn_bbox.dtype)
                     batch_images = np.zeros((batch_size,) + image.shape, dtype=np.float32)
-                    batch_gt_class_ids = np.zeros((batch_size, config.MAX_GT_INSTANCES), dtype=np.int32)
-                    batch_gt_boxes = np.zeros((batch_size, config.MAX_GT_INSTANCES, 4), dtype=np.int32)
+                    batch_gt_class_ids = np.zeros((batch_size, config.ARCHI.MAX_GT_INSTANCES), dtype=np.int32)
+                    batch_gt_boxes = np.zeros((batch_size, config.ARCHI.MAX_GT_INSTANCES, 4), dtype=np.int32)
 
                     if random_rois:
                         batch_rpn_rois = np.zeros((batch_size, rpn_rois.shape[0], 4), dtype=rpn_rois.dtype)
@@ -135,9 +136,9 @@ def data_generator(dataset,
                             batch_mrcnn_bbox = np.zeros((batch_size,) + mrcnn_bbox.shape, dtype=mrcnn_bbox.dtype)
 
                 # If more instances than fits in the array, sub-sample from them.
-                if gt_boxes.shape[0] > config.MAX_GT_INSTANCES:
+                if gt_boxes.shape[0] > config.ARCHI.MAX_GT_INSTANCES:
                     ids = np.random.choice(
-                        np.arange(gt_boxes.shape[0]), config.MAX_GT_INSTANCES, replace=False)
+                        np.arange(gt_boxes.shape[0]), config.ARCHI.MAX_GT_INSTANCES, replace=False)
                     gt_class_ids = gt_class_ids[ids]
                     gt_boxes = gt_boxes[ids]
 
@@ -286,14 +287,14 @@ def build_detection_targets(rpn_rois, gt_class_ids, gt_boxes, config):
 
     # Subsample ROIs. Aim for 33% foreground.
     # FG
-    fg_roi_count = int(config.TRAIN_ROIS_PER_IMAGE * config.ROI_POSITIVE_RATIO)
+    fg_roi_count = int(config.ARCHI.TRAIN_ROIS_PER_IMAGE * config.ARCHI.ROI_POSITIVE_RATIO)
     if fg_ids.shape[0] > fg_roi_count:
         keep_fg_ids = np.random.choice(fg_ids, fg_roi_count, replace=False)
     else:
         keep_fg_ids = fg_ids
 
     # BG
-    remaining = config.TRAIN_ROIS_PER_IMAGE - keep_fg_ids.shape[0]
+    remaining = config.ARCHI.TRAIN_ROIS_PER_IMAGE - keep_fg_ids.shape[0]
     if bg_ids.shape[0] > remaining:
         keep_bg_ids = np.random.choice(bg_ids, remaining, replace=False)
     else:
@@ -303,7 +304,7 @@ def build_detection_targets(rpn_rois, gt_class_ids, gt_boxes, config):
     keep = np.concatenate([keep_fg_ids, keep_bg_ids])
 
     # Need more?
-    remaining = config.TRAIN_ROIS_PER_IMAGE - keep.shape[0]
+    remaining = config.ARCHI.TRAIN_ROIS_PER_IMAGE - keep.shape[0]
     if remaining > 0:
         # Looks like we don't have enough samples to maintain the desired
         # balance. Reduce requirements and fill in the rest. This is
@@ -322,9 +323,9 @@ def build_detection_targets(rpn_rois, gt_class_ids, gt_boxes, config):
             keep_extra_ids = np.random.choice(
                 keep_bg_ids, remaining, replace=True)
             keep = np.concatenate([keep, keep_extra_ids])
-    assert keep.shape[0] == config.TRAIN_ROIS_PER_IMAGE, \
+    assert keep.shape[0] == config.ARCHI.TRAIN_ROIS_PER_IMAGE, \
         "keep doesn't match ROI batch size {}, {}".format(
-            keep.shape[0], config.TRAIN_ROIS_PER_IMAGE)
+            keep.shape[0], config.ARCHI.TRAIN_ROIS_PER_IMAGE)
 
     # Reset the gt boxes assigned to BG ROIs.
     rpn_roi_gt_boxes[keep_bg_ids, :] = 0
@@ -336,19 +337,20 @@ def build_detection_targets(rpn_rois, gt_class_ids, gt_boxes, config):
     roi_gt_class_ids = rpn_roi_gt_class_ids[keep]
 
     # Class-aware bbox deltas. [y, x, log(h), log(w)]
-    bboxes = np.zeros((config.TRAIN_ROIS_PER_IMAGE,
-                       config.NB_CLASSES, 4), dtype=np.float32)
+    bboxes = np.zeros((config.ARCHI.TRAIN_ROIS_PER_IMAGE,
+                       config.DATASET.NB_CLASSES, 4), dtype=np.float32)
     pos_ids = np.where(roi_gt_class_ids > 0)[0]
     bboxes[pos_ids, roi_gt_class_ids[pos_ids]] = utils.box_refinement(rois[pos_ids], roi_gt_boxes[pos_ids, :4])
 
     # Normalize bbox refinements
-    bboxes /= config.BBOX_STD_DEV
+    bboxes /= config.ARCHI.BBOX_STD_DEV
 
     return rois, roi_gt_class_ids, bboxes
 
 
 def build_rpn_targets(image_shape, anchors, gt_class_ids, gt_boxes, config):
-    """Given the anchors and GT boxes, compute overlaps and identify positive
+    '''
+    Given the anchors and GT boxes, compute overlaps and identify positive
     anchors and deltas to refine them to match their corresponding GT boxes.
 
     anchors: [num_anchors, (y1, x1, y2, x2)]
@@ -359,7 +361,7 @@ def build_rpn_targets(image_shape, anchors, gt_class_ids, gt_boxes, config):
     rpn_match: [N] (int32) matches between anchors and GT boxes.
                1 = positive anchor, -1 = negative anchor, 0 = neutral
     rpn_bbox: [N, (dy, dx, log(dh), log(dw))] Anchor bbox deltas.
-    """
+    '''
     # RPN Match: 1 = positive anchor, -1 = negative anchor, 0 = neutral
     rpn_match = np.zeros([anchors.shape[0]], dtype=np.int32)
     # RPN bounding boxes: [max anchors per image, (dy, dx, log(dh), log(dw))]
@@ -409,14 +411,14 @@ def build_rpn_targets(image_shape, anchors, gt_class_ids, gt_boxes, config):
     # Subsample to balance positive and negative anchors
     # Don't let positives be more than half the anchors
     ids = np.where(rpn_match == 1)[0]
-    extra = len(ids) - (config.RPN_TRAIN_ANCHORS_PER_IMAGE // 2)
+    extra = len(ids) - (config.ARCHI.RPN_TRAIN_ANCHORS_PER_IMAGE // 2)
     if extra > 0:
         # Reset the extra ones to neutral
         ids = np.random.choice(ids, extra, replace=False)
         rpn_match[ids] = 0
     # Same for negative proposals
     ids = np.where(rpn_match == -1)[0]
-    extra = len(ids) - (config.RPN_TRAIN_ANCHORS_PER_IMAGE -
+    extra = len(ids) - (config.ARCHI.RPN_TRAIN_ANCHORS_PER_IMAGE -
                         np.sum(rpn_match == 1))
     if extra > 0:
         # Rest the extra ones to neutral
@@ -457,7 +459,7 @@ def build_rpn_targets(image_shape, anchors, gt_class_ids, gt_boxes, config):
                 np.log(gt_w / a_w),
             ]
             # Normalize
-            rpn_bbox[ix] /= config.RPN_BBOX_STD_DEV
+            rpn_bbox[ix] /= config.ARCHI.RPN_BBOX_STD_DEV
             ix += 1
 
         except:
@@ -469,7 +471,8 @@ def build_rpn_targets(image_shape, anchors, gt_class_ids, gt_boxes, config):
 
 
 def generate_random_rois(image_shape, count, gt_class_ids, gt_boxes):
-    """Generates ROI proposals similar to what a region proposal network
+    '''
+    Generates ROI proposals similar to what a region proposal network
     would generate.
 
     image_shape: [Height, Width, Depth]
@@ -478,7 +481,7 @@ def generate_random_rois(image_shape, count, gt_class_ids, gt_boxes):
     gt_boxes: [N, (y1, x1, y2, x2)] Ground truth boxes in pixels.
 
     Returns: [count, (y1, x1, y2, x2)] ROI boxes in pixels.
-    """
+    '''
     # placeholder
     rois = np.zeros((count, 4), dtype=np.int32)
 

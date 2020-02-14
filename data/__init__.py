@@ -43,7 +43,7 @@ class Dataset(Sequence):
         self.all_keys = set(x_keys + y_keys)
         assert all([k in self.supported_keys for k in self.all_keys]), 'Unexpected key in %s' % str(self.all_keys)
 
-        self.img_size = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.N_CHANNELS)
+        self.img_size = (cfg.IMAGE.IMG_SIZE, cfg.IMAGE.IMG_SIZE, cfg.IMAGE.NB_CHANNELS)
 
         # loading samples
         self.sample_ids = self.load_samples()

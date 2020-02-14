@@ -96,12 +96,12 @@ def detection_targets_graph(proposals, gt_class_ids, gt_boxes, config):
 
     # Subsample ROIs. Aim for 33% positive
     # Positive ROIs
-    positive_count = int(config.TRAIN_ROIS_PER_IMAGE * config.ROI_POSITIVE_RATIO)
+    positive_count = int(config.ARCHI.TRAIN_ROIS_PER_IMAGE * config.ARCHI.ROI_POSITIVE_RATIO)
     positive_indices = tf.random_shuffle(positive_indices)[:positive_count]
     positive_count = tf.shape(positive_indices)[0]
 
     # Negative ROIs. Add enough to maintain positive:negative ratio.
-    r = 1.0 / config.ROI_POSITIVE_RATIO
+    r = 1.0 / config.ARCHI.ROI_POSITIVE_RATIO
     negative_count = tf.cast(r * tf.cast(positive_count, tf.float32), tf.int32) - positive_count
     negative_indices = tf.random_shuffle(negative_indices)[:negative_count]
 
@@ -121,13 +121,13 @@ def detection_targets_graph(proposals, gt_class_ids, gt_boxes, config):
 
     # Compute bbox refinement for positive ROIs
     deltas = utils.box_refinement_graph(positive_rois, roi_gt_boxes)
-    deltas /= config.BBOX_STD_DEV
+    deltas /= config.ARCHI.BBOX_STD_DEV
 
     # Append negative ROIs and pad bbox deltas and masks that
     # are not used for negative ROIs with zeros.
     rois = tf.concat([positive_rois, negative_rois], axis=0)
     N = tf.shape(negative_rois)[0]
-    P = tf.maximum(config.TRAIN_ROIS_PER_IMAGE - tf.shape(rois)[0], 0)
+    P = tf.maximum(config.ARCHI.TRAIN_ROIS_PER_IMAGE - tf.shape(rois)[0], 0)
     rois = tf.pad(rois, [(0, P), (0, 0)])
     roi_gt_boxes = tf.pad(roi_gt_boxes, [(0, N + P), (0, 0)])
     roi_gt_class_ids = tf.pad(roi_gt_class_ids, [(0, N + P)])
@@ -170,13 +170,13 @@ class DetectionTargetLayer(KE.Layer):
         names = ["rois", "target_class_ids", "target_bbox"]
         outputs = utils.batch_slice([proposals, gt_class_ids, gt_boxes],
                                     lambda w, x, y: detection_targets_graph(w, x, y, self.config),
-                                    self.config.IMAGES_PER_GPU,
+                                    self.config.BATCH_SIZE,
                                     names=names)
         return outputs
 
     def compute_output_shape(self, input_shape):
         return [
-            (None, self.config.TRAIN_ROIS_PER_IMAGE, 4),  # rois
-            (None, self.config.TRAIN_ROIS_PER_IMAGE),     # class_ids
-            (None, self.config.TRAIN_ROIS_PER_IMAGE, 4),  # deltas
+            (None, self.config.ARCHI.TRAIN_ROIS_PER_IMAGE, 4),  # rois
+            (None, self.config.ARCHI.TRAIN_ROIS_PER_IMAGE),     # class_ids
+            (None, self.config.ARCHI.TRAIN_ROIS_PER_IMAGE, 4),  # deltas
         ]

@@ -62,7 +62,7 @@ def rpn_bbox_loss_graph(config, target_bbox, rpn_match, rpn_bbox):
 
     # Trim target bounding box deltas to the same length as rpn_bbox.
     batch_counts = K.sum(K.cast(K.equal(rpn_match, 1), tf.int32), axis=1)
-    target_bbox = gutils.batch_pack_graph(target_bbox, batch_counts, config.IMAGES_PER_GPU)
+    target_bbox = gutils.batch_pack_graph(target_bbox, batch_counts, config.BATCH_SIZE)
 
     loss = smooth_l1_loss(target_bbox, rpn_bbox)
 

@@ -16,7 +16,7 @@ cfg.DEBUG.IS_TEST = False
 
 # size of images
 cfg.IMAGE = edict()
-cfg.IMAGE.N_CHANNELS = 3
+cfg.IMAGE.NB_CHANNELS = 3
 cfg.IMAGE.IMG_SIZE = 448
 
 cfg.DATASET = edict()
@@ -59,6 +59,5 @@ cfg.RELABEL.EPOCHS = None
 
 # merge config
 cfg.GPU_COUNT = 1
-cfg.IMAGES_PER_GPU = 2
 cfg.STEPS_PER_EPOCH = 1000
 cfg.VALIDATION_STEPS = 50
